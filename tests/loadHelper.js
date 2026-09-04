@@ -1,12 +1,15 @@
-import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
 
 // Load a `.pragma library` QML helper into Node without regex parsing.
 // Top-level function/var declarations become sandbox properties after
 // running the source in a fresh context — nested functions and comments
 // can't break this, unlike the old matchAll(/function .../) approach.
 export function loadHelper(filePath) {
-  const raw = readFileSync(filePath, 'utf8').replace(/^\s*\.pragma\s+library\s*$/m, '');
+  const raw = readFileSync(filePath, "utf8").replace(
+    /^\s*\.pragma\s+library\s*$/m,
+    "",
+  );
   const sandbox = {};
   vm.createContext(sandbox);
   vm.runInContext(raw, sandbox, { filename: filePath });
@@ -16,9 +19,10 @@ export function loadHelper(filePath) {
   const out = {};
   for (const key of Object.keys(sandbox)) {
     const v = sandbox[key];
-    out[key] = typeof v === 'function'
-      ? (...args) => structuredClone(v(...args))
-      : structuredClone(v);
+    out[key] =
+      typeof v === "function"
+        ? (...args) => structuredClone(v(...args))
+        : structuredClone(v);
   }
   return out;
 }
