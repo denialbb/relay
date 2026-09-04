@@ -102,10 +102,9 @@ export function selectPreview(chat) {
 export function appendPendingMessage(messages, pending) {
   const base = Array.isArray(messages) ? [...messages] : [];
   if (!pending) return base;
-  base.push({
-    ...pending,
+  base.push(Object.assign({}, pending, {
     sendState: "pending",
-  });
+  }));
   return base;
 }
 
@@ -114,11 +113,10 @@ export function reconcilePendingMessage(messages, remote) {
   if (!remote) return [...messages];
   return messages.map((m) => {
     if (m?.id === remote.localId) {
-      return {
-        ...m,
+      return Object.assign({}, m, {
         id: remote.id ?? m.id,
         sendState: "remote",
-      };
+      });
     }
     return m;
   });
