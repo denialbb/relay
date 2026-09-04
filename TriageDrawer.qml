@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import Quickshell
 import "components"
 import "models"
 import "services"
@@ -38,6 +37,7 @@ FocusScope {
 
     TriageModel {
         id: triageModel
+        service: beeperService
     }
 
     readonly property bool inConversation: triageModel.activeChatId !== ""

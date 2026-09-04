@@ -5,7 +5,7 @@ import "TriageModel.js" as TM
 Item {
     id: root
 
-    property var service: (typeof beeperService !== "undefined") ? beeperService : fallbackService
+    property var service: fallbackService
     property var chats: service ? service.chats : []
     property string activeChatId: ""
     property var activeMessages: []
