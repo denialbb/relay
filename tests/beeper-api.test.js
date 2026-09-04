@@ -16,7 +16,7 @@ before(async () => {
   server = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     if (req.url.startsWith('/v1/chats/search')) {
-      res.end(JSON.stringify({ chats: [{ id: 'c1', type: 'single', unreadCount: 1 }] }));
+      res.end(JSON.stringify({ chats: [{ id: 'c1', type: 'single', unreadCount: 1 }], query: req.url }));
     } else if (req.url.match(/^\/v1\/chats\/[^/]+\/messages$/) && req.method === 'GET') {
       res.end(JSON.stringify({ messages: [{ id: 'm1', type: 'TEXT', text: 'hi' }] }));
     } else if (req.url.match(/^\/v1\/chats\/[^/]+\/messages$/) && req.method === 'POST') {
@@ -48,7 +48,26 @@ describe('BeeperApi contract', () => {
     assert.ok(r.id);
   });
   it('markRead -> success', async () => {
-    const c = await markRead('c1', 'm1');
+    const c = await markRead('c1', 'm1', { baseUrl });
     assert.equal(c.id, 'c1');
+  });
+  it('searchUnreadChats defaults to unreadOnly=true&type=any', async () => {
+    const page = await searchUnreadChats({ baseUrl });
+    assert.match(page.query, /unreadOnly=true/);
+    assert.match(page.query, /type=any/);
+  });
+  it('request timeout -> beeper-unavailable', async () => {
+    const hanging = createServer(() => {});
+    await new Promise((r) => hanging.listen(0, r));
+    const hangingUrl = `http://127.0.0.1:${hanging.address().port}`;
+    await assert.rejects(listMessages('c1', { baseUrl: hangingUrl, timeoutMs: 50 }), /beeper-unavailable/);
+    hanging.close();
+  });
+  it('connection refused -> beeper-unavailable', async () => {
+    const probe = createServer(() => {});
+    await new Promise((r) => probe.listen(0, r));
+    const closedUrl = `http://127.0.0.1:${probe.address().port}`;
+    await new Promise((r) => probe.close(r));
+    await assert.rejects(listMessages('c1', { baseUrl: closedUrl, timeoutMs: 2000 }), /beeper-unavailable/);
   });
 });
