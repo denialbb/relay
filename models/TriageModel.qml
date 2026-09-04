@@ -60,6 +60,13 @@ Item {
         }
     }
 
+    // Layering: UI sets auth through the model, never directly on the service.
+    function setAuthToken(token) {
+        if (root.service) {
+            root.service.authToken = (token || "").trim();
+        }
+    }
+
     function submitReply(text) {
         if (!root.activeChatId) return;
         if (!text || text.trim().length === 0) return;

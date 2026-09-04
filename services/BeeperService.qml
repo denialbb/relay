@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import "../models/TriageModel.js" as TM
 
 Item {
@@ -11,7 +12,8 @@ Item {
     property string lastError: ""
     property bool pollingActive: false
 
-    property string baseUrl: "http://127.0.0.1:22373"
+    property string baseUrl: "http://127.0.0.1:23373"
+    property string authToken: ""
     property int pollInterval: 5000
     property int backoffInterval: 1000
 
@@ -42,7 +44,22 @@ Item {
         }
     }
 
+    // ponytail: XHR is the only HTTP primitive in the QML runtime (no fetch),
+    // so transport lives here; response-shape normalization is canonical in
+    // BeeperApi.extractItems and mirrored below in itemsOf().
+    function itemsOf(data, key) {
+        if (data instanceof Array) return data;
+        if (!data) return [];
+        if (data.items instanceof Array) return data.items;
+        if (data[key] instanceof Array) return data[key];
+        return [];
+    }
+
     function initialize() {
+        var envToken = Quickshell.env("BEEPER_ACCESS_TOKEN");
+        if (envToken && !root.authToken) {
+            root.authToken = envToken.trim();
+        }
         root.pollingActive = true;
         root.refreshUnread();
     }
@@ -77,7 +94,7 @@ Item {
 
     function onRefreshSuccess(data) {
         root.isRefreshing = false;
-        var rawChats = data ? data.chats : [];
+        var rawChats = root.itemsOf(data, "chats");
         root.processRefreshedChats(rawChats);
         root.resetBackoff();
         root.status = "ready";
@@ -175,7 +192,7 @@ Item {
 
     function onMessagesLoaded(chatId, data) {
         root.finishMessageLoad(chatId);
-        var raw = data ? data.messages : [];
+        var raw = root.itemsOf(data, "messages");
         var msgs = [];
         for (var i = 0; i < raw.length; i++) {
             msgs.push(TM.normalizeMessage(raw[i]));
@@ -271,11 +288,22 @@ Item {
         var xhr = new XMLHttpRequest();
         xhr.open(method, root.baseUrl + path, true);
         xhr.timeout = 10000;
+        root.applyAuthHeader(xhr);
+        root.applyContentTypeHeader(xhr, body);
+        root.bindXhrEvents(xhr, onSuccess, onFailure);
+        xhr.send(body ? JSON.stringify(body) : null);
+    }
+
+    function applyAuthHeader(xhr) {
+        if (root.authToken) {
+            xhr.setRequestHeader("Authorization", "Bearer " + root.authToken);
+        }
+    }
+
+    function applyContentTypeHeader(xhr, body) {
         if (body) {
             xhr.setRequestHeader("Content-Type", "application/json");
         }
-        root.bindXhrEvents(xhr, onSuccess, onFailure);
-        xhr.send(body ? JSON.stringify(body) : null);
     }
 
     function bindXhrEvents(xhr, onSuccess, onFailure) {
