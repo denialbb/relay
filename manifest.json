@@ -1,0 +1,1 @@
+{"author": "denial", "description": "Keyboard-first unread Beeper triage drawer.", "entryPoints": {"panel": "TriageDrawer.qml"}, "id": "denial.beeper-relay", "kinds": ["panel"], "name": "Relay", "schemaVersion": 1, "version": "0.1.0"}

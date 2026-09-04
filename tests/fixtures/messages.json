@@ -1,0 +1,6 @@
+[
+  { "id": "msg-1", "chatId": "chat-1", "type": "TEXT", "text": "Can you review this?", "senderId": "alice", "senderName": "Alice", "timestamp": "2026-09-04T10:00:00Z", "isMine": false },
+  { "id": "msg-2", "chatId": "chat-1", "type": "TEXT", "text": "Sure, give me 10 minutes.", "senderId": "me", "senderName": "You", "timestamp": "2026-09-04T10:01:00Z", "isMine": true },
+  { "id": "msg-3", "chatId": "chat-1", "type": "IMAGE", "text": null, "senderId": "alice", "senderName": "Alice", "timestamp": "2026-09-04T10:02:00Z", "isMine": false },
+  { "id": "msg-4", "chatId": "chat-1", "type": "TEXT", "text": "   ", "senderId": "alice", "senderName": "Alice", "timestamp": "2026-09-04T10:03:00Z", "isMine": false }
+]

@@ -1,0 +1,6 @@
+[
+  { "id": "chat-1", "type": "single", "unreadCount": 2, "title": "Alice", "network": "signal", "lastActivity": "2026-09-04T10:00:00Z" },
+  { "id": "chat-2", "type": "group", "unreadCount": 1, "title": "Dev Team", "network": "slack", "lastActivity": "2026-09-04T09:30:00Z" },
+  { "id": "chat-3", "type": "single", "unreadCount": 0, "title": "Quiet", "network": "signal", "lastActivity": "2026-09-03T08:00:00Z" },
+  { "id": "chat-4", "type": "channel", "unreadCount": 5, "title": "Broadcast", "network": "telegram", "lastActivity": "2026-09-04T11:00:00Z" }
+]

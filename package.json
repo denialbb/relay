@@ -1,0 +1,1 @@
+{"name": "relay", "private": true, "scripts": {"test": "node --test tests/", "check:complexity": "node tools/check-complexity.mjs"}, "type": "module"}

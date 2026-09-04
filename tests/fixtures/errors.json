@@ -1,0 +1,7 @@
+[
+  { "case": "http-500", "status": 500, "expected": "server-error" },
+  { "case": "http-401", "status": 401, "expected": "unauthorized" },
+  { "case": "http-429", "status": 429, "expected": "rate-limited" },
+  { "case": "timeout", "code": "ETIMEDOUT", "expected": "beeper-unavailable" },
+  { "case": "malformed", "body": "not-json{{{", "expected": "invalid-response" }
+]
