@@ -21,7 +21,6 @@ Item {
     property bool hasPendingRefresh: false
     property var loadingChats: ({})
 
-    signal stateChanged()
     signal refreshStarted()
     signal refreshFinished()
     signal sendStarted(string chatId, string localMessageId)

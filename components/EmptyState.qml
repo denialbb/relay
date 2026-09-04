@@ -17,7 +17,6 @@ Item {
         anchors.centerIn: parent
         width: Math.min(parent.width - root.metrics.spacingXL * 2, 320)
         spacing: root.metrics.spacingSM
-        horizontalAlignment: Text.AlignHCenter
 
         Rectangle {
             width: 44
