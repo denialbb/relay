@@ -1,10 +1,26 @@
 // BeeperApi — pure integration boundary (spec §7.1). No UI concerns.
 // options is always an object so new API params don't change call sites.
 
-let defaultBaseUrl = "http://127.0.0.1:22373";
+let defaultBaseUrl = "http://127.0.0.1:23373";
+let defaultToken = "";
 
 export function setDefaultBaseUrl(url) {
   defaultBaseUrl = url;
+}
+
+export function setDefaultToken(token) {
+  defaultToken = token;
+}
+
+// Canonical response-shape normalization (spec §4.3, §6). Beeper returns
+// `{ items: [...] }`; older stubs/fixtures use `{ chats: [...] }` or
+// `{ messages: [...] }`; some payloads are already arrays.
+export function extractItems(data, key) {
+  if (Array.isArray(data)) return data;
+  if (!data) return [];
+  if (Array.isArray(data.items)) return data.items;
+  if (key && Array.isArray(data[key])) return data[key];
+  return [];
 }
 
 function resolveBaseUrl(options) {
@@ -33,10 +49,16 @@ function classifyNetworkError(err) {
 
 async function requestJson(url, init = {}, options = {}) {
   const timeoutMs = options.timeoutMs ?? 10000;
+  const token = options.token ?? defaultToken;
+  const headers = { ...init.headers };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   let response;
   try {
     response = await fetch(url, {
       ...init,
+      headers,
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {

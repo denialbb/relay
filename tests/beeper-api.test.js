@@ -7,6 +7,7 @@ import {
   listMessages,
   sendText,
   markRead,
+  extractItems,
 } from "../services/BeeperApi.js";
 
 let server;
@@ -20,6 +21,7 @@ before(async () => {
         JSON.stringify({
           chats: [{ id: "c1", type: "single", unreadCount: 1 }],
           query: req.url,
+          auth: req.headers["authorization"] || "",
         }),
       );
     } else if (
@@ -88,5 +90,16 @@ describe("BeeperApi contract", () => {
       listMessages("c1", { baseUrl: closedUrl, timeoutMs: 2000 }),
       /beeper-unavailable/,
     );
+  });
+  it("passes Bearer token from options.token", async () => {
+    const page = await searchUnreadChats({ baseUrl, token: "tok-abc" });
+    assert.equal(page.auth, "Bearer tok-abc");
+  });
+  it("extractItems handles items/key/array shapes", () => {
+    assert.deepEqual(extractItems({ items: [1] }), [1]);
+    assert.deepEqual(extractItems({ chats: [2] }, "chats"), [2]);
+    assert.deepEqual(extractItems([3]), [3]);
+    assert.deepEqual(extractItems(null, "chats"), []);
+    assert.deepEqual(extractItems({}, "chats"), []);
   });
 });
