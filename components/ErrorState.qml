@@ -66,26 +66,27 @@ Item {
             id: retryBtn
             anchors.horizontalCenter: parent.horizontalCenter
             width: 100
-            height: 32
-            radius: root.metrics.radiusSM
-            color: buttonMouseArea.containsMouse ? root.theme.surfaceRaised : root.theme.surface
-            border.color: buttonMouseArea.containsMouse ? root.theme.accent : root.theme.border
-            border.width: 1
+                height: 32
+                radius: root.metrics.radiusSM
+                color: buttonMouseArea.containsMouse ? root.theme.surfaceRaised : root.theme.surface
+                border.color: buttonMouseArea.containsMouse ? root.theme.accent : root.theme.border
+                border.width: 1
 
-            Text {
-                anchors.centerIn: parent
-                text: "Retry"
-                color: buttonMouseArea.containsMouse ? root.theme.accent : root.theme.textPrimary
-                font.pixelSize: 13
-                font.bold: true
-            }
+                Text {
+                    anchors.centerIn: parent
+                    text: "Retry"
+                    color: buttonMouseArea.containsMouse ? root.theme.accent : root.theme.textPrimary
+                    font.pixelSize: 13
+                    font.bold: true
+                }
 
-            MouseArea {
-                id: buttonMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.retry()
+                MouseArea {
+                    id: buttonMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.retry()
+                }
             }
         }
     }
