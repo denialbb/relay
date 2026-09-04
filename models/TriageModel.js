@@ -1,9 +1,11 @@
+.pragma library
+
 // TriageModel.js — pure domain helpers, testable without Quickshell/Wayland/net.
 // Contract defined in docs/relay_beeper_triage_spec.md §6, §7.3, §11, §13.
 
 const VALID_CHAT_TYPES = new Set(["single", "group"]);
 
-export function filterEligibleChats(chats) {
+function filterEligibleChats(chats) {
   if (!Array.isArray(chats)) return [];
   return chats.filter((c) => {
     if (!c || !VALID_CHAT_TYPES.has(c.type)) return false;
@@ -11,7 +13,7 @@ export function filterEligibleChats(chats) {
   });
 }
 
-export function classifyMessage(message) {
+function classifyMessage(message) {
   if (!message || message.type !== "TEXT") {
     return "unsupported";
   }
@@ -31,7 +33,7 @@ function getChatUnread(count) {
   return 0;
 }
 
-export function normalizeChat(chat) {
+function normalizeChat(chat) {
   if (!chat) return null;
   const c = chat;
   return {
@@ -59,7 +61,7 @@ function getMessageText(kind, text) {
   return text;
 }
 
-export function normalizeMessage(message) {
+function normalizeMessage(message) {
   if (!message) return null;
   const m = message;
   const kind = classifyMessage(m);
@@ -77,7 +79,7 @@ export function normalizeMessage(message) {
   };
 }
 
-export function sortChats(chats) {
+function sortChats(chats) {
   if (!Array.isArray(chats)) return [];
   return [...chats].sort((a, b) => {
     const timeA = a?.lastActivity ? Date.parse(a.lastActivity) : 0;
@@ -86,7 +88,7 @@ export function sortChats(chats) {
   });
 }
 
-export function calculateUnreadTotal(chats) {
+function calculateUnreadTotal(chats) {
   if (!Array.isArray(chats)) return 0;
   return chats.reduce(
     (acc, c) => acc + (typeof c?.unreadCount === "number" ? c.unreadCount : 0),
@@ -94,12 +96,12 @@ export function calculateUnreadTotal(chats) {
   );
 }
 
-export function selectPreview(chat) {
+function selectPreview(chat) {
   if (!chat?.preview) return null;
   return normalizeMessage(chat.preview);
 }
 
-export function appendPendingMessage(messages, pending) {
+function appendPendingMessage(messages, pending) {
   const base = Array.isArray(messages) ? [...messages] : [];
   if (!pending) return base;
   base.push(Object.assign({}, pending, {
@@ -108,7 +110,7 @@ export function appendPendingMessage(messages, pending) {
   return base;
 }
 
-export function reconcilePendingMessage(messages, remote) {
+function reconcilePendingMessage(messages, remote) {
   if (!Array.isArray(messages)) return [];
   if (!remote) return [...messages];
   return messages.map((m) => {
@@ -122,7 +124,7 @@ export function reconcilePendingMessage(messages, remote) {
   });
 }
 
-export function mapApiError(error) {
+function mapApiError(error) {
   if (!error) return "unknown";
   if (error.invalidBody) return "invalid-response";
   if (error.code === "ETIMEDOUT") return "beeper-unavailable";

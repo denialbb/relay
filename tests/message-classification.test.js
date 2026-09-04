@@ -1,7 +1,8 @@
-// Layer 1b — message classification matrix (spec §11). RED.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyMessage } from '../models/TriageModel.js';
+import { loadHelper } from './loadHelper.js';
+
+const { classifyMessage } = loadHelper('./models/TriageModel.js');
 
 describe('message classification', () => {
   it('TEXT with text -> text', () => {

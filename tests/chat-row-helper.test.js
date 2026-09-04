@@ -1,15 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
-
-function loadHelper(filePath) {
-  const code = readFileSync(filePath, 'utf8').replace('.pragma library', '');
-  const context = {};
-  vm.createContext(context);
-  vm.runInContext(code, context);
-  return context;
-}
+import { loadHelper } from './loadHelper.js';
 
 const chatRowHelper = loadHelper('./components/ChatRowHelper.js');
 const errorStateHelper = loadHelper('./components/ErrorStateHelper.js');

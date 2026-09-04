@@ -1,7 +1,8 @@
-// Layer 1 — pure unit tests (spec §17.2). No Quickshell/Wayland/net. RED: impl throws.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
+import { loadHelper } from './loadHelper.js';
+
+const {
   filterEligibleChats,
   normalizeChat,
   normalizeMessage,
@@ -12,7 +13,7 @@ import {
   appendPendingMessage,
   reconcilePendingMessage,
   mapApiError,
-} from '../models/TriageModel.js';
+} = loadHelper('./models/TriageModel.js');
 
 describe('filterEligibleChats', () => {
   it('keeps unread single/group, drops read + non-single/group', () => {
