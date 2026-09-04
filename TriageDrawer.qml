@@ -16,10 +16,7 @@ FocusScope {
     signal requestOpenInBeeper(string chatId)
 
     implicitWidth: 400
-    width: 400
-    anchors.top: parent ? parent.top : undefined
-    anchors.bottom: parent ? parent.bottom : undefined
-    anchors.right: parent ? parent.right : undefined
+    implicitHeight: 600
 
     focus: true
 
@@ -234,27 +231,8 @@ FocusScope {
         id: panelContainer
         anchors.fill: parent
         color: theme.background
-        border.color: theme.border
-        border.width: 1
+        radius: metrics.radiusMD
         clip: true
-
-        x: root.open ? 0 : root.width
-        opacity: root.open ? 1.0 : 0.0
-        visible: root.open || opacity > 0.01
-
-        Behavior on x {
-            NumberAnimation {
-                duration: metrics.animationNormal
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: metrics.animationNormal
-                easing.type: Easing.OutCubic
-            }
-        }
 
         // Header Bar
         Rectangle {

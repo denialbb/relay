@@ -1,1 +1,21 @@
-{"author": "denial", "description": "Keyboard-first unread Beeper triage drawer.", "entryPoints": {"panel": "TriageDrawer.qml"}, "id": "denial.beeper-relay", "kinds": ["panel"], "name": "Relay", "schemaVersion": 1, "version": "0.1.0"}
+{
+  "schemaVersion": 1,
+  "id": "denial.beeper-relay",
+  "name": "Relay",
+  "version": "0.1.0",
+  "author": "denial",
+  "description": "Keyboard-first unread Beeper triage drawer.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Relay",
+    "description": "Beeper unread triage drawer",
+    "category": "Communication",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
