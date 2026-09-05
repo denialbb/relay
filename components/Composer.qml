@@ -116,7 +116,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
 
                     Text {
-                        text: "Ctrl+Enter"
+                        text: "Enter"
                         color: root.hintTextColor
                         font.pixelSize: 11
                     }
@@ -151,24 +151,29 @@ Item {
         }
     }
 
+    readonly property bool isInputFocused: textEdit.activeFocus
+
     function focusInput() {
         textEdit.forceActiveFocus()
     }
 
     function isSubmitCombo(event) {
         var isEnter = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-        return isEnter && ((event.modifiers & Qt.ControlModifier) !== 0)
+        var isShift = (event.modifiers & Qt.ShiftModifier) !== 0
+        return isEnter && !isShift
     }
 
     function handleKeyPress(event) {
         if (!event) return
         if (event.key === Qt.Key_Escape) {
             textEdit.focus = false
+            event.accepted = true
             return
         }
         if (root.isSubmitCombo(event)) {
             root.submitCurrentText()
             event.accepted = true
+            return
         }
     }
 

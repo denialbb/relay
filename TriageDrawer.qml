@@ -152,7 +152,9 @@ FocusScope {
         if (event.modifiers & Qt.ControlModifier) {
             triageModel.refresh();
         } else {
-            triageModel.markActiveChatRead();
+            var cid = root.resolveChatId("");
+            root.dismissChat(cid);
+            triageModel.markActiveChatRead(cid);
         }
     }
 
@@ -210,9 +212,8 @@ FocusScope {
     }
 
     function dispatchQuickReply(chatId, text) {
-        if (!beeperService) return;
-        beeperService.sendText(chatId, text);
-        beeperService.markRead(chatId, null);
+        if (!triageModel) return;
+        triageModel.quickReply(chatId, text);
     }
 
     function submitQuickReply(text) {
@@ -243,7 +244,11 @@ FocusScope {
     }
 
     function isActivateKey(key) {
-        return key === Qt.Key_Return || key === Qt.Key_Enter || key === Qt.Key_O;
+        return key === Qt.Key_Return || key === Qt.Key_Enter;
+    }
+
+    function isListOpenKey(key) {
+        return key === Qt.Key_O || root.isActivateKey(key);
     }
 
     function routeCommonKey(event) {
@@ -276,7 +281,8 @@ FocusScope {
 
     function handleListAction(event) {
         if (event.key === Qt.Key_B) {
-            root.openInBeeper("");
+            var chat = root.getSelectedChat();
+            root.openInBeeper(chat ? chat.id : "");
             event.accepted = true;
         } else if (event.key === Qt.Key_I) {
             root.openQuickReply();
@@ -287,7 +293,7 @@ FocusScope {
     function routeListKey(event) {
         root.handleListNav(event);
         if (event.accepted) return;
-        if (root.isActivateKey(event.key)) {
+        if (root.isListOpenKey(event.key)) {
             root.activateCurrentChat();
             event.accepted = true;
             return;
@@ -318,6 +324,20 @@ FocusScope {
     }
 
     function routeKey(event) {
+        if (root.quickReplyOpen) {
+            if (event.key === Qt.Key_Escape) {
+                root.closeQuickReply();
+                event.accepted = true;
+            }
+            return;
+        }
+        if (root.inConversation && conversationView.isComposerFocused) {
+            if (event.key === Qt.Key_Escape) {
+                root.forceActiveFocus();
+                event.accepted = true;
+            }
+            return;
+        }
         routeCommonKey(event);
         if (event.accepted) return;
         if (root.inConversation) {
@@ -434,7 +454,9 @@ FocusScope {
                     implicitWidth: markReadText.implicitWidth + metrics.spacingSM
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        triageModel.markActiveChatRead();
+                        var cid = triageModel.activeChatId;
+                        root.dismissChat(cid);
+                        triageModel.markActiveChatRead(cid);
                     }
 
                     Text {
@@ -518,10 +540,15 @@ FocusScope {
                 chat: root.currentChat
                 messages: triageModel.activeMessages
                 onRequestMarkRead: {
-                    triageModel.markActiveChatRead();
+                    var cid = triageModel.activeChatId;
+                    root.dismissChat(cid);
+                    triageModel.markActiveChatRead(cid);
                 }
                 onRequestOpenInBeeper: {
                     root.openInBeeper(triageModel.activeChatId);
+                }
+                onSubmitReply: function(text) {
+                    triageModel.submitReply(text);
                 }
             }
         }

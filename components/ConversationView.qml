@@ -22,6 +22,7 @@ Item {
     readonly property string chatTitle: root.chat ? (root.chat.title || "Chat") : "Chat"
     readonly property bool isReadOnly: root.chat ? Boolean(root.chat.isReadOnly) : false
     readonly property bool canMarkRead: root.chat ? (typeof root.chat.unreadCount === "number" && root.chat.unreadCount > 0) : false
+    readonly property bool isComposerFocused: replyComposer.isInputFocused
     readonly property color backTextColor: backMouseArea.containsMouse ? root.theme.accent : root.theme.textPrimary
     readonly property color markReadTextColor: markReadMouseArea.containsMouse ? root.theme.accent : root.theme.textSecondary
     readonly property color beeperTextColor: beeperMouseArea.containsMouse ? root.theme.accent : root.theme.textSecondary
