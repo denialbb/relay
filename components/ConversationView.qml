@@ -33,106 +33,6 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        // 1. Top Header
-        Rectangle {
-            id: headerBar
-            Layout.fillWidth: true
-            implicitHeight: root.metrics.barHeight
-            color: root.theme.surface
-            border.color: root.theme.border
-            border.width: 1
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: root.metrics.spacingMD
-                anchors.rightMargin: root.metrics.spacingMD
-                spacing: root.metrics.spacingSM
-
-                // Back button
-                Rectangle {
-                    implicitWidth: 28
-                    implicitHeight: 28
-                    radius: root.metrics.radiusSM
-                    color: "transparent"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "←"
-                        font.pixelSize: 16
-                        font.bold: true
-                        color: root.backTextColor
-                    }
-
-                    MouseArea {
-                        id: backMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.requestBack()
-                    }
-                }
-
-                // Chat title
-                Text {
-                    Layout.fillWidth: true
-                    text: root.chatTitle
-                    color: root.theme.textPrimary
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
-                    elide: Text.ElideRight
-                }
-
-                // Mark read action
-                Rectangle {
-                    visible: root.canMarkRead
-                    implicitWidth: markReadText.implicitWidth + (root.metrics.spacingSM * 2)
-                    implicitHeight: 28
-                    radius: root.metrics.radiusSM
-                    color: "transparent"
-
-                    Text {
-                        id: markReadText
-                        anchors.centerIn: parent
-                        text: "Mark read"
-                        font.pixelSize: 12
-                        color: root.markReadTextColor
-                    }
-
-                    MouseArea {
-                        id: markReadMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.requestMarkRead()
-                    }
-                }
-
-                // Open in Beeper action
-                Rectangle {
-                    implicitWidth: beeperText.implicitWidth + (root.metrics.spacingSM * 2)
-                    implicitHeight: 28
-                    radius: root.metrics.radiusSM
-                    color: "transparent"
-
-                    Text {
-                        id: beeperText
-                        anchors.centerIn: parent
-                        text: "Beeper ↗"
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                        color: root.beeperTextColor
-                    }
-
-                    MouseArea {
-                        id: beeperMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.requestOpenInBeeper()
-                    }
-                }
-            }
-        }
 
         // 2. Message Scroller
         Item {
@@ -169,5 +69,36 @@ Item {
                 root.submitReply(text)
             }
         }
+    }
+
+    NumberAnimation {
+        id: scrollAnim
+        target: messageListView
+        property: "contentY"
+        duration: 150
+        easing.type: Easing.OutCubic
+    }
+
+    function scrollBy(delta) {
+        var minY = messageListView.originY
+        var maxY = Math.max(minY, minY + messageListView.contentHeight - messageListView.height)
+        var curY = scrollAnim.running ? scrollAnim.to : messageListView.contentY
+        var nextY = Math.max(minY, Math.min(curY + delta, maxY))
+        scrollAnim.stop()
+        scrollAnim.from = messageListView.contentY
+        scrollAnim.to = nextY
+        scrollAnim.start()
+    }
+
+    function scrollDown() {
+        root.scrollBy(100)
+    }
+
+    function scrollUp() {
+        root.scrollBy(-100)
+    }
+
+    function focusComposer() {
+        replyComposer.focusInput()
     }
 }

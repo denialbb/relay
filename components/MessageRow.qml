@@ -13,7 +13,14 @@ Item {
     property RelayTheme theme: RelayTheme {}
     property RelayMetrics metrics: RelayMetrics {}
 
-    readonly property bool isMine: root.message ? Boolean(root.message.isMine) : false
+    readonly property bool isMine: root.message ? Boolean(
+        root.message.isMine ||
+        root.message.is_sender ||
+        root.message.is_self ||
+        root.message.senderId === "me" ||
+        root.message.senderName === "You" ||
+        root.message.senderName === "Me"
+    ) : false
     readonly property string sendState: root.message ? (root.message.sendState || "remote") : "remote"
     readonly property bool isUnsupported: root.message ? (root.message.kind === "unsupported") : false
     readonly property bool isPending: root.sendState === "pending"
@@ -29,10 +36,10 @@ Item {
 
     Item {
         id: bubbleContainer
-        anchors.top: parent.top
+        anchors.top: root.top
         anchors.topMargin: root.metrics.spacingXS
-        anchors.left: root.isMine ? undefined : parent.left
-        anchors.right: root.isMine ? parent.right : undefined
+        anchors.left: root.isMine ? undefined : root.left
+        anchors.right: root.isMine ? root.right : undefined
         anchors.leftMargin: root.metrics.spacingMD
         anchors.rightMargin: root.metrics.spacingMD
         width: Math.min(contentColumn.implicitWidth + (root.metrics.spacingMD * 2), root.width * 0.82)

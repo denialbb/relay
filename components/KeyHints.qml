@@ -14,7 +14,7 @@ Row {
     // [{ key: "j / k", label: "move" }, ...]
     property var hints: []
 
-    spacing: 12
+    spacing: 8
 
     Repeater {
         model: root.hints
@@ -22,12 +22,12 @@ Row {
         delegate: Row {
             id: pair
             required property var modelData
-            spacing: 6
+            spacing: 4
 
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: cap.implicitWidth + 8
-                height: cap.implicitHeight + 4
+                width: cap.implicitWidth + 6
+                height: cap.implicitHeight + 2
                 radius: root.badgeRadius
                 color: root.badgeColor
 

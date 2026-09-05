@@ -151,11 +151,22 @@ Item {
         }
     }
 
+    function focusInput() {
+        textEdit.forceActiveFocus()
+    }
+
+    function isSubmitCombo(event) {
+        var isEnter = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+        return isEnter && ((event.modifiers & Qt.ControlModifier) !== 0)
+    }
+
     function handleKeyPress(event) {
         if (!event) return
-        var isEnter = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-        var isCtrl = (event.modifiers & Qt.ControlModifier) !== 0
-        if (isEnter && isCtrl) {
+        if (event.key === Qt.Key_Escape) {
+            textEdit.focus = false
+            return
+        }
+        if (root.isSubmitCombo(event)) {
             root.submitCurrentText()
             event.accepted = true
         }

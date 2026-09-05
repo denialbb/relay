@@ -37,11 +37,28 @@ FocusScope {
         service: beeperService
     }
 
+    property bool quickReplyOpen: false
+    property var quickReplyChat: null
+    property var dismissedChatIds: ({})
+
+    readonly property var visibleChats: getVisibleChats(triageModel.chats, root.dismissedChatIds)
     readonly property bool inConversation: triageModel.activeChatId !== ""
     readonly property bool hasError: triageModel.error !== ""
-    readonly property bool hasChats: Boolean(triageModel.chats && triageModel.chats.length > 0)
+    readonly property bool hasChats: Boolean(root.visibleChats && root.visibleChats.length > 0)
     readonly property bool isInboxEmpty: !hasError && !hasChats
     readonly property var currentChat: findChatById(triageModel.chats, triageModel.activeChatId)
+
+    function getVisibleChats(chats, dismissed) {
+        if (!chats) return [];
+        var out = [];
+        for (var i = 0; i < chats.length; i++) {
+            var c = chats[i];
+            if (c && !dismissed[c.id]) {
+                out.push(c);
+            }
+        }
+        return out;
+    }
 
     function findChatById(list, id) {
         if (!list) return null;
@@ -73,23 +90,17 @@ FocusScope {
     }
 
     function initSelection() {
-        var count = triageModel.chats ? triageModel.chats.length : 0;
+        var count = root.visibleChats ? root.visibleChats.length : 0;
         if (root.selectedIndex < 0 && count > 0) {
             root.selectedIndex = 0;
         }
     }
 
     function clampSelectedIndex() {
-        var count = triageModel.chats ? triageModel.chats.length : 0;
+        var count = root.visibleChats ? root.visibleChats.length : 0;
         if (count === 0) {
             root.selectedIndex = -1;
-            return;
-        }
-        if (root.selectedIndex < 0) {
-            root.selectedIndex = 0;
-            return;
-        }
-        if (root.selectedIndex >= count) {
+        } else if (root.selectedIndex >= count) {
             root.selectedIndex = count - 1;
         }
     }
@@ -102,9 +113,8 @@ FocusScope {
     }
 
     function getSelectedChat() {
-        var list = triageModel.chats;
-        if (!list) return null;
-        if (root.selectedIndex < 0) return null;
+        var list = root.visibleChats;
+        if (!list || root.selectedIndex < 0) return null;
         if (root.selectedIndex >= list.length) return null;
         return list[root.selectedIndex];
     }
@@ -117,7 +127,7 @@ FocusScope {
     }
 
     function navigateChat(delta) {
-        var count = triageModel.chats ? triageModel.chats.length : 0;
+        var count = root.visibleChats ? root.visibleChats.length : 0;
         if (count <= 0) {
             root.selectedIndex = -1;
             return;
@@ -127,6 +137,10 @@ FocusScope {
     }
 
     function handleEscape() {
+        if (root.quickReplyOpen) {
+            root.closeQuickReply();
+            return;
+        }
         if (triageModel.activeChatId !== "") {
             triageModel.closeChat();
         } else {
@@ -142,14 +156,26 @@ FocusScope {
         }
     }
 
+    function resolveChatId(chatId) {
+        if (chatId) return chatId;
+        var sel = root.getSelectedChat();
+        if (sel && sel.id) return sel.id;
+        return triageModel.activeChatId || "";
+    }
+
+    function openBeeperUrl(targetId) {
+        var targetUrl = targetId ? ("beeper://chat/" + encodeURIComponent(targetId)) : "beeper://";
+        Qt.openUrlExternally(targetUrl);
+    }
+
     function openInBeeper(chatId) {
-        var targetId = chatId || triageModel.activeChatId || "";
+        var targetId = root.resolveChatId(chatId);
         root.requestOpenInBeeper(targetId);
         if (typeof triageModel.openInBeeper === "function") {
             triageModel.openInBeeper(targetId);
+        } else {
+            root.openBeeperUrl(targetId);
         }
-        var targetUrl = targetId !== "" ? ("beeper://chat/" + encodeURIComponent(targetId)) : "beeper://";
-        Qt.openUrlExternally(targetUrl);
         root.requestClose();
     }
 
@@ -161,15 +187,71 @@ FocusScope {
         }
     }
 
-    function routeCommonKey(event) {
+    function openQuickReply() {
+        var chat = root.getSelectedChat();
+        if (!chat) return;
+        root.quickReplyChat = chat;
+        root.quickReplyOpen = true;
+        quickReplyInput.forceActiveFocus();
+    }
+
+    function closeQuickReply() {
+        root.quickReplyOpen = false;
+        root.quickReplyChat = null;
+        root.forceActiveFocus();
+    }
+
+    function dismissChat(chatId) {
+        if (!chatId) return;
+        var map = Object.assign({}, root.dismissedChatIds);
+        map[chatId] = true;
+        root.dismissedChatIds = map;
+        root.clampSelectedIndex();
+    }
+
+    function dispatchQuickReply(chatId, text) {
+        if (!beeperService) return;
+        beeperService.sendText(chatId, text);
+        beeperService.markRead(chatId, null);
+    }
+
+    function submitQuickReply(text) {
+        var chat = root.quickReplyChat;
+        if (!chat) return;
+        var t = (text || "").trim();
+        if (t.length === 0) return;
+        root.dispatchQuickReply(chat.id, t);
+        root.dismissChat(chat.id);
+        root.closeQuickReply();
+    }
+
+    function handleQuickReplyKey(event) {
         if (event.key === Qt.Key_Escape) {
-            handleEscape();
+            quickReplyInput.text = "";
+            root.closeQuickReply();
             event.accepted = true;
-        } else if (event.key === Qt.Key_O) {
-            openInBeeper(triageModel.activeChatId);
+        } else if (root.isActivateKey(event.key)) {
+            var msg = quickReplyInput.text;
+            quickReplyInput.text = "";
+            root.submitQuickReply(msg);
+            event.accepted = true;
+        }
+    }
+
+    function isQuitKey(key) {
+        return key === Qt.Key_Escape || key === Qt.Key_Q;
+    }
+
+    function isActivateKey(key) {
+        return key === Qt.Key_Return || key === Qt.Key_Enter || key === Qt.Key_O;
+    }
+
+    function routeCommonKey(event) {
+        if (root.isQuitKey(event.key)) {
+            root.handleEscape();
             event.accepted = true;
         } else if (event.key === Qt.Key_R) {
-            handleReadOrRefresh(event);
+            root.handleReadOrRefresh(event);
             event.accepted = true;
         }
     }
@@ -182,10 +264,6 @@ FocusScope {
         return key === Qt.Key_K || key === Qt.Key_Up;
     }
 
-    function isActivateKey(key) {
-        return key === Qt.Key_Return || key === Qt.Key_Enter;
-    }
-
     function handleListNav(event) {
         if (isNavDown(event.key)) {
             navigateChat(1);
@@ -196,18 +274,45 @@ FocusScope {
         }
     }
 
+    function handleListAction(event) {
+        if (event.key === Qt.Key_B) {
+            root.openInBeeper("");
+            event.accepted = true;
+        } else if (event.key === Qt.Key_I) {
+            root.openQuickReply();
+            event.accepted = true;
+        }
+    }
+
     function routeListKey(event) {
-        handleListNav(event);
+        root.handleListNav(event);
         if (event.accepted) return;
-        if (isActivateKey(event.key)) {
-            activateCurrentChat();
+        if (root.isActivateKey(event.key)) {
+            root.activateCurrentChat();
+            event.accepted = true;
+            return;
+        }
+        root.handleListAction(event);
+    }
+
+    function handleConvNav(event) {
+        if (root.isNavDown(event.key)) {
+            conversationView.scrollDown();
+            event.accepted = true;
+        } else if (root.isNavUp(event.key)) {
+            conversationView.scrollUp();
             event.accepted = true;
         }
     }
 
     function routeConvKey(event) {
-        if (event.key === Qt.Key_C) {
-            focusComposer();
+        root.handleConvNav(event);
+        if (event.accepted) return;
+        if (event.key === Qt.Key_I || event.key === Qt.Key_C) {
+            root.focusComposer();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_B) {
+            root.openInBeeper(triageModel.activeChatId);
             event.accepted = true;
         }
     }
@@ -325,6 +430,24 @@ FocusScope {
 
                 MouseArea {
                     Layout.fillHeight: true
+                    visible: Boolean(root.currentChat && root.currentChat.unreadCount > 0)
+                    implicitWidth: markReadText.implicitWidth + metrics.spacingSM
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        triageModel.markActiveChatRead();
+                    }
+
+                    Text {
+                        id: markReadText
+                        anchors.centerIn: parent
+                        text: "Mark read"
+                        color: theme.accent
+                        font.pixelSize: 12
+                    }
+                }
+
+                MouseArea {
+                    Layout.fillHeight: true
                     implicitWidth: beeperText.implicitWidth + metrics.spacingSM
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
@@ -346,7 +469,7 @@ FocusScope {
         Item {
             id: contentArea
             anchors.top: headerBar.bottom
-            anchors.bottom: footerBar.top
+            anchors.bottom: (root.quickReplyOpen && !root.inConversation) ? quickReplyBar.top : footerBar.top
             anchors.left: parent.left
             anchors.right: parent.right
             clip: true
@@ -378,7 +501,7 @@ FocusScope {
                     id: chatList
                     anchors.fill: parent
                     visible: !root.hasError && root.hasChats
-                    chats: triageModel.chats
+                    chats: root.visibleChats
                     selectedIndex: root.selectedIndex
                     onChatActivated: function(index) {
                         root.selectedIndex = index;
@@ -399,6 +522,56 @@ FocusScope {
                 }
                 onRequestOpenInBeeper: {
                     root.openInBeeper(triageModel.activeChatId);
+                }
+            }
+        }
+
+        // Quick Reply Bar
+        Rectangle {
+            id: quickReplyBar
+            anchors.bottom: footerBar.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 44
+            visible: root.quickReplyOpen && !root.inConversation
+            color: theme.surfaceRaised
+            border.color: theme.border
+            border.width: 1
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: metrics.spacingMD
+                anchors.rightMargin: metrics.spacingMD
+                spacing: metrics.spacingSM
+
+                Text {
+                    text: root.quickReplyChat ? (root.quickReplyChat.title + ":") : ""
+                    color: theme.accent
+                    font.pixelSize: 12
+                    font.bold: true
+                    elide: Text.ElideRight
+                    Layout.maximumWidth: 100
+                }
+
+                TextInput {
+                    id: quickReplyInput
+                    Layout.fillWidth: true
+                    color: theme.textPrimary
+                    font.pixelSize: 13
+                    clip: true
+                    selectByMouse: true
+
+                    Text {
+                        anchors.fill: parent
+                        visible: parent.text.length === 0
+                        text: "Reply… (Enter to send, Esc to cancel)"
+                        color: theme.textSecondary
+                        font.pixelSize: 13
+                    }
+
+                    Keys.onPressed: function(event) {
+                        root.handleQuickReplyKey(event);
+                    }
                 }
             }
         }
@@ -428,26 +601,34 @@ FocusScope {
     }
 
     function getHints() {
+        if (root.quickReplyOpen) {
+            return [
+                { key: "Enter", label: "send" },
+                { key: "Esc", label: "cancel" }
+            ];
+        }
         if (root.inConversation) {
             return [
-                { key: "c", label: "reply" },
-                { key: "r", label: "mark read" },
-                { key: "o", label: "beeper" },
-                { key: "Esc", label: "back" }
+                { key: "j/k", label: "scroll" },
+                { key: "i", label: "reply" },
+                { key: "r", label: "read" },
+                { key: "b", label: "beeper" },
+                { key: "q", label: "back" }
             ];
         }
         if (root.hasError) {
             return [
                 { key: "r", label: "retry" },
-                { key: "Esc", label: "close" }
+                { key: "q", label: "close" }
             ];
         }
         return [
-            { key: "j / k", label: "navigate" },
-            { key: "Enter", label: "select" },
-            { key: "r", label: "mark read" },
-            { key: "o", label: "beeper" },
-            { key: "Esc", label: "close" }
+            { key: "j/k", label: "nav" },
+            { key: "o", label: "open" },
+            { key: "i", label: "reply" },
+            { key: "r", label: "read" },
+            { key: "b", label: "beeper" },
+            { key: "q", label: "close" }
         ];
     }
 }
