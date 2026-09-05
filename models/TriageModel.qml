@@ -12,6 +12,7 @@ Item {
     property int unreadTotal: chats ? TM.calculateUnreadTotal(chats) : 0
     property string status: service ? service.status : "idle"
     property string error: service ? service.lastError : ""
+    property bool isRefreshing: service ? service.isRefreshing : false
 
     BeeperService {
         id: fallbackService

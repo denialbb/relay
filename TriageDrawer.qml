@@ -362,6 +362,7 @@ FocusScope {
                     anchors.fill: parent
                     visible: root.hasError
                     error: triageModel.error
+                    isRefreshing: triageModel.isRefreshing
                     onRetry: {
                         triageModel.refresh();
                     }

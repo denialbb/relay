@@ -7,6 +7,7 @@ Item {
     id: root
 
     property string error: ""
+    property bool isRefreshing: false
     property RelayTheme theme: RelayTheme {}
     property RelayMetrics metrics: RelayMetrics {}
 
@@ -73,8 +74,8 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text: "Retry"
-                color: buttonMouseArea.containsMouse ? root.theme.accent : root.theme.textPrimary
+                text: root.isRefreshing ? "Retrying..." : "Retry"
+                color: (buttonMouseArea.containsMouse || root.isRefreshing) ? root.theme.accent : root.theme.textPrimary
                 font.pixelSize: 13
                 font.bold: true
             }
@@ -82,9 +83,9 @@ Item {
             MouseArea {
                 id: buttonMouseArea
                 anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.retry()
+                hoverEnabled: !root.isRefreshing
+                cursorShape: root.isRefreshing ? Qt.ArrowCursor : Qt.PointingHandCursor
+                onClicked: if (!root.isRefreshing) root.retry()
             }
         }
     }
