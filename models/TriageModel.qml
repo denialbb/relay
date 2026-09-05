@@ -106,10 +106,21 @@ Item {
     }
 
     function executeMarkRead(targetId) {
-        var msgId = root.getLatestMessageId();
-        root.closeChat();
+        var isCurrent = (targetId === root.activeChatId);
+        var msgId = isCurrent ? root.getLatestMessageId() : null;
+        if (isCurrent) {
+            root.closeChat();
+        }
         if (root.service) {
             root.service.markRead(targetId, msgId);
+        }
+    }
+
+    function quickReply(chatId, text) {
+        if (!chatId || !text) return;
+        if (root.service) {
+            root.service.sendText(chatId, text);
+            root.service.markRead(chatId, null);
         }
     }
 
@@ -120,9 +131,30 @@ Item {
         return last ? last.id : null;
     }
 
+    function findChat(chatId) {
+        var list = root.chats;
+        if (!list) return null;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].id === chatId) return list[i];
+        }
+        return null;
+    }
+
+    function buildBeeperUrl(chat) {
+        if (!chat) return "beeper://focus";
+        var p = chat.accountID || (chat.network ? chat.network.toLowerCase() : "");
+        if (!p) return "beeper://focus";
+        return "beeper://select-thread/" + encodeURIComponent(p) + "/" + encodeURIComponent(chat.id) + "?accountID=" + encodeURIComponent(p);
+    }
+
     function openInBeeper(chatId) {
         var targetId = chatId || root.activeChatId;
-        var url = targetId ? ("beeper://chat/" + encodeURIComponent(targetId)) : "beeper://";
+        if (!targetId) {
+            Qt.openUrlExternally("beeper://focus");
+            return;
+        }
+        var chat = root.findChat(targetId);
+        var url = root.buildBeeperUrl(chat);
         Qt.openUrlExternally(url);
     }
 }
