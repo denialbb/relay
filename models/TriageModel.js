@@ -16,10 +16,14 @@ function hasUnread(c) {
   return typeof c.unreadCount === "number" && c.unreadCount > 0;
 }
 
+function isMutedOrDisabled(c) {
+  return Boolean(c.isReadOnly || c.isMuted || c.isArchived || c.cannotMessage);
+}
+
 function isChatEligible(c) {
   if (!c || !VALID_CHAT_TYPES.has(c.type)) return false;
-  if (c.isReadOnly) return false;
   if (isVaultChat(c)) return true;
+  if (isMutedOrDisabled(c)) return false;
   return hasUnread(c);
 }
 
@@ -57,20 +61,31 @@ function getChatUnread(count) {
   return 0;
 }
 
+function extractChatStrings(c) {
+  const out = { id: "", accountID: "", title: "", network: "", type: "single" };
+  for (const k of ["id", "accountID", "title", "network", "type"]) {
+    if (typeof c[k] === "string") out[k] = c[k];
+  }
+  return out;
+}
+
 function normalizeChat(chat) {
   if (!chat) return null;
   const c = chat;
+  const s = extractChatStrings(c);
   return {
-    id: c.id ?? "",
-    title: c.title ?? "",
-    network: c.network ?? "",
-    type: c.type ?? "single",
-    avatarUrl: c.avatarUrl ?? null,
+    id: s.id,
+    accountID: s.accountID,
+    title: s.title,
+    network: s.network,
+    type: s.type,
+    avatarUrl: c.avatarUrl || null,
     unreadCount: getChatUnread(c.unreadCount),
-    lastActivity: c.lastActivity ?? null,
+    lastActivity: c.lastActivity || null,
     preview: getPreview(c.preview),
     messagesLoaded: Boolean(c.messagesLoaded),
     isReadOnly: Boolean(c.isReadOnly),
+    isMuted: Boolean(c.isMuted),
   };
 }
 
@@ -85,6 +100,17 @@ function getMessageText(kind, text) {
   return text;
 }
 
+function isSenderUser(m) {
+  if (!m) return false;
+  if (m.isMine || m.isSender) return true;
+  return Boolean(m.isSelf);
+}
+
+function getSenderId(m) {
+  if (!m) return "";
+  return m.senderId || m.senderID || "";
+}
+
 function normalizeMessage(message) {
   if (!message) return null;
   const m = message;
@@ -92,10 +118,10 @@ function normalizeMessage(message) {
   return {
     id: m.id ?? "",
     chatId: m.chatId ?? "",
-    senderId: m.senderId ?? "",
+    senderId: getSenderId(m),
     senderName: m.senderName ?? "",
     timestamp: m.timestamp ?? null,
-    isMine: Boolean(m.isMine),
+    isMine: isSenderUser(m),
     isUnread: getUnreadState(m.isUnread),
     kind,
     text: getMessageText(kind, m.text),

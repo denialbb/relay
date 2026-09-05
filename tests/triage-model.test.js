@@ -60,6 +60,16 @@ describe('filterEligibleChats', () => {
     ]);
     assert.equal(out.length, 1);
   });
+
+  it('drops muted, archived, or cannotMessage chats', () => {
+    const out = filterEligibleChats([
+      { id: 'c1', type: 'single', unreadCount: 2, isMuted: true, title: 'Twitch monitor' },
+      { id: 'c2', type: 'group', unreadCount: 3, isArchived: true },
+      { id: 'c3', type: 'group', unreadCount: 4, cannotMessage: true },
+      { id: 'c4', type: 'single', unreadCount: 1, isMuted: false },
+    ]);
+    assert.deepEqual(out.map(c => c.id), ['c4']);
+  });
 });
 
 describe('sortMessages', () => {
@@ -80,8 +90,9 @@ describe('sortMessages', () => {
 
 describe('normalizeChat', () => {
   it('normalizes to TriageChat shape', () => {
-    const c = normalizeChat({ id: 'a', type: 'single', unreadCount: 2, title: 'Alice' });
+    const c = normalizeChat({ id: 'a', accountID: 'whatsapp', type: 'single', unreadCount: 2, title: 'Alice' });
     assert.equal(c.id, 'a');
+    assert.equal(c.accountID, 'whatsapp');
     assert.equal(c.type, 'single');
     assert.equal(c.unreadCount, 2);
     assert.equal(c.messagesLoaded, false);
@@ -95,6 +106,15 @@ describe('normalizeMessage / classifyMessage', () => {
     assert.equal(m.kind, 'text');
     assert.equal(m.text, 'hi');
     assert.equal(m.isUnread, true);
+  });
+
+  it('normalizes isMine from isSender: true or isSelf: true', () => {
+    const m1 = normalizeMessage({ id: 'm1', type: 'TEXT', text: 'hi', isSender: true });
+    assert.equal(m1.isMine, true);
+    const m2 = normalizeMessage({ id: 'm2', type: 'TEXT', text: 'hello', isSelf: true });
+    assert.equal(m2.isMine, true);
+    const m3 = normalizeMessage({ id: 'm3', type: 'TEXT', text: 'hey', isSender: false });
+    assert.equal(m3.isMine, false);
   });
 
   it('non-TEXT -> unsupported', () => {
