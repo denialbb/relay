@@ -47,6 +47,7 @@ Item {
     property bool isRefreshing: false
     property bool hasPendingRefresh: false
     property var loadingChats: ({})
+    property var recentlyMarkedRead: ({})
 
     signal refreshStarted()
     signal refreshFinished()
@@ -155,9 +156,53 @@ Item {
         root.checkPendingRefresh();
     }
 
-    function appendUniqueChat(list, seen, item) {
-        if (!item || !item.id || seen[item.id]) return;
+    function recordRecentlyMarkedRead(chatId) {
+        var copy = Object.assign({}, root.recentlyMarkedRead);
+        copy[chatId] = Date.now();
+        root.recentlyMarkedRead = copy;
+    }
+
+    function isRecentlyMarkedRead(id) {
+        var t = root.recentlyMarkedRead[id];
+        if (!t) return false;
+        return (Date.now() - t <= 10000);
+    }
+
+    function removeOrZeroChat(chatId) {
+        var updated = [];
+        for (var i = 0; i < root.chats.length; i++) {
+            var c = root.chats[i];
+            if (!c) continue;
+            if (c.id === chatId) {
+                if (TM.isVaultChat(c)) {
+                    updated.push(Object.assign({}, c, { unreadCount: 0 }));
+                }
+            } else {
+                updated.push(c);
+            }
+        }
+        root.chats = updated;
+    }
+
+    function shouldSkipChat(seen, item) {
+        if (!item || !item.id) return true;
+        if (seen[item.id]) return true;
         seen[item.id] = true;
+        return false;
+    }
+
+    function appendVaultIfMatch(list, item) {
+        if (!TM.isVaultChat(item)) return;
+        var zeroed = Object.assign({}, item, { unreadCount: 0 });
+        list.push(TM.normalizeChat(zeroed));
+    }
+
+    function appendUniqueChat(list, seen, item) {
+        if (root.shouldSkipChat(seen, item)) return;
+        if (root.isRecentlyMarkedRead(item.id)) {
+            root.appendVaultIfMatch(list, item);
+            return;
+        }
         list.push(TM.normalizeChat(item));
     }
 
@@ -319,6 +364,8 @@ Item {
 
     function markRead(chatId, messageId) {
         if (!chatId) return;
+        root.recordRecentlyMarkedRead(chatId);
+        root.removeOrZeroChat(chatId);
         var path = "/v1/chats/" + encodeURIComponent(chatId) + "/read";
         var payload = messageId ? { messageID: messageId, messageId: messageId } : {};
         root.executeHttp("POST", path, payload, function(data) {
@@ -330,6 +377,7 @@ Item {
 
     function onMarkReadSuccess(chatId) {
         root.updateChatUnreadZero(chatId);
+        root.removeOrZeroChat(chatId);
         root.refreshUnread();
     }
 
