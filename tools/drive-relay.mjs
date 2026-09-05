@@ -103,7 +103,13 @@ export async function preflight() {
 
   // 2. probe beeper desktop port
   try {
+    let token = '';
+    try {
+      token = readFileSync(process.env.HOME + '/.config/beeper-relay/token', 'utf8').trim();
+    } catch(e) {}
+    const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
     const res = await fetch(`${BEEPER_URL}/v1/chats/search?unreadOnly=true&type=any`, {
+      headers,
       signal: AbortSignal.timeout(3000)
     });
     // 200 or 401 proves Beeper Desktop is listening
