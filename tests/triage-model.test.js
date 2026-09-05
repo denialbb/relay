@@ -8,11 +8,13 @@ const {
   normalizeMessage,
   classifyMessage,
   sortChats,
+  sortMessages,
   calculateUnreadTotal,
   selectPreview,
   appendPendingMessage,
   reconcilePendingMessage,
   mapApiError,
+  isVaultChat,
 } = loadHelper('./models/TriageModel.js');
 
 describe('filterEligibleChats', () => {
@@ -27,6 +29,52 @@ describe('filterEligibleChats', () => {
       { type: 'single', unreadCount: 2 },
       { type: 'group', unreadCount: 1 },
     ]);
+  });
+
+  it('drops read-only channels even if unreadCount > 0', () => {
+    const out = filterEligibleChats([
+      { type: 'single', unreadCount: 2, isReadOnly: false },
+      { type: 'group', unreadCount: 9, isReadOnly: true, title: 'Tabz - Live News' },
+      { type: 'group', unreadCount: 16, isReadOnly: true, title: 'RaiNews' },
+    ]);
+    assert.deepEqual(out, [
+      { type: 'single', unreadCount: 2, isReadOnly: false },
+    ]);
+  });
+
+  it('always includes VAULT chat even if unreadCount is 0', () => {
+    const out = filterEligibleChats([
+      { id: 'vault-1', type: 'single', unreadCount: 0, title: 'VAULT' },
+      { id: '!EWHKJwxKdhoNLDcMGD:beeper.com', type: 'single', unreadCount: 0, title: 'Personal Notes' },
+      { id: 'regular', type: 'single', unreadCount: 0, title: 'Regular' },
+    ]);
+    assert.deepEqual(out, [
+      { id: 'vault-1', type: 'single', unreadCount: 0, title: 'VAULT' },
+      { id: '!EWHKJwxKdhoNLDcMGD:beeper.com', type: 'single', unreadCount: 0, title: 'Personal Notes' },
+    ]);
+  });
+
+  it('includes chats with isMarkedUnread: true even if unreadCount is 0', () => {
+    const out = filterEligibleChats([
+      { type: 'single', unreadCount: 0, isMarkedUnread: true },
+    ]);
+    assert.equal(out.length, 1);
+  });
+});
+
+describe('sortMessages', () => {
+  it('sorts messages chronologically (oldest first, newest last)', () => {
+    const out = sortMessages([
+      { id: 'm2', timestamp: '2026-09-04T12:00:00Z' },
+      { id: 'm1', timestamp: '2026-09-03T12:00:00Z' },
+      { id: 'm3', timestamp: '2026-09-05T12:00:00Z' },
+    ]);
+    assert.deepEqual(out.map((m) => m.id), ['m1', 'm2', 'm3']);
+  });
+
+  it('handles bad input safely', () => {
+    assert.deepEqual(sortMessages(null), []);
+    assert.deepEqual(sortMessages([]), []);
   });
 });
 

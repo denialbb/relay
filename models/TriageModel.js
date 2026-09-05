@@ -5,11 +5,35 @@
 
 const VALID_CHAT_TYPES = new Set(["single", "group"]);
 
+function isVaultChat(chat) {
+  if (!chat) return false;
+  if (typeof chat.title === "string" && chat.title.trim().toLowerCase() === "vault") return true;
+  return chat.id === "vault" || chat.id === "!EWHKJwxKdhoNLDcMGD:beeper.com";
+}
+
+function hasUnread(c) {
+  if (c.isMarkedUnread === true) return true;
+  return typeof c.unreadCount === "number" && c.unreadCount > 0;
+}
+
+function isChatEligible(c) {
+  if (!c || !VALID_CHAT_TYPES.has(c.type)) return false;
+  if (c.isReadOnly) return false;
+  if (isVaultChat(c)) return true;
+  return hasUnread(c);
+}
+
 function filterEligibleChats(chats) {
   if (!Array.isArray(chats)) return [];
-  return chats.filter((c) => {
-    if (!c || !VALID_CHAT_TYPES.has(c.type)) return false;
-    return typeof c.unreadCount === "number" && c.unreadCount > 0;
+  return chats.filter(isChatEligible);
+}
+
+function sortMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+  return [...messages].sort((a, b) => {
+    const timeA = a && a.timestamp ? Date.parse(a.timestamp) : 0;
+    const timeB = b && b.timestamp ? Date.parse(b.timestamp) : 0;
+    return timeA - timeB;
   });
 }
 
