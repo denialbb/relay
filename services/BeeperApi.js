@@ -81,6 +81,21 @@ export async function searchUnreadChats(options = {}) {
   const url = new URL("/v1/chats/search", base);
   url.searchParams.set("unreadOnly", String(options.unreadOnly ?? true));
   url.searchParams.set("type", options.type ?? "any");
+  if (options.limit !== undefined) {
+    url.searchParams.set("limit", String(options.limit));
+  }
+  return requestJson(url.toString(), {}, options);
+}
+
+export async function searchChats(query = "", options = {}) {
+  const base = resolveBaseUrl(options);
+  const url = new URL("/v1/chats/search", base);
+  if (query) {
+    url.searchParams.set("query", query);
+  }
+  if (options.limit !== undefined) {
+    url.searchParams.set("limit", String(options.limit));
+  }
   return requestJson(url.toString(), {}, options);
 }
 
@@ -116,7 +131,10 @@ export async function markRead(chatId, messageId = null, options = {}) {
   const base = resolveBaseUrl(options);
   const encodedChatId = encodeURIComponent(chatId);
   const url = new URL(`/v1/chats/${encodedChatId}/read`, base);
-  const payload = typeof messageId === "string" ? { messageId } : {};
+  const payload =
+    typeof messageId === "string"
+      ? { messageID: messageId, messageId }
+      : {};
   return requestJson(
     url.toString(),
     {

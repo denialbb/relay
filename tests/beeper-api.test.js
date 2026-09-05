@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import {
   searchUnreadChats,
+  searchChats,
   listMessages,
   sendText,
   markRead,
@@ -37,7 +38,12 @@ before(async () => {
     ) {
       res.end(JSON.stringify({ id: "m2", status: "sent" }));
     } else if (req.url.endsWith("/read")) {
-      res.end(JSON.stringify({ id: "c1" }));
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        res.end(JSON.stringify({ id: "c1", receivedBody: body ? JSON.parse(body) : {} }));
+      });
+      return;
     } else {
       res.statusCode = 404;
       res.end("{}");
@@ -62,9 +68,20 @@ describe("BeeperApi contract", () => {
     const r = await sendText("c1", "hello", { baseUrl });
     assert.ok(r.id);
   });
-  it("markRead -> success", async () => {
+  it("markRead -> success with messageID payload", async () => {
     const c = await markRead("c1", "m1", { baseUrl });
     assert.equal(c.id, "c1");
+    assert.equal(c.receivedBody.messageID, "m1");
+    assert.equal(c.receivedBody.messageId, "m1");
+  });
+  it("markRead with null messageId -> empty payload", async () => {
+    const c = await markRead("c1", null, { baseUrl });
+    assert.equal(c.id, "c1");
+    assert.deepEqual(c.receivedBody, {});
+  });
+  it("searchChats -> passes query parameter", async () => {
+    const page = await searchChats("VAULT", { baseUrl });
+    assert.match(page.query, /query=VAULT/);
   });
   it("searchUnreadChats defaults to unreadOnly=true&type=any", async () => {
     const page = await searchUnreadChats({ baseUrl });

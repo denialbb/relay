@@ -94,11 +94,22 @@ Item {
         };
     }
 
-    function markActiveChatRead() {
-        if (!root.activeChatId) return;
+    function markActiveChatRead(chatId) {
+        var targetId = root.resolveTargetChatId(chatId);
+        if (!targetId) return;
+        root.executeMarkRead(targetId);
+    }
+
+    function resolveTargetChatId(chatId) {
+        if (chatId) return chatId;
+        return root.activeChatId;
+    }
+
+    function executeMarkRead(targetId) {
         var msgId = root.getLatestMessageId();
+        root.closeChat();
         if (root.service) {
-            root.service.markRead(root.activeChatId, msgId);
+            root.service.markRead(targetId, msgId);
         }
     }
 

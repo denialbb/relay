@@ -114,8 +114,34 @@ Item {
             root.status = "loading";
         }
         root.refreshStarted();
-        root.executeHttp("GET", "/v1/chats/search?unreadOnly=true&type=any", null,
-            root.onRefreshSuccess, root.onRefreshFailure);
+        root.executeHttp("GET", "/v1/chats/search?unreadOnly=true&type=any&limit=200", null,
+            root.onUnreadSearchSuccess, root.onRefreshFailure);
+    }
+
+    function onUnreadSearchSuccess(data) {
+        var rawChats = root.itemsOf(data, "chats");
+        if (root.hasVaultChat(rawChats)) {
+            root.onRefreshSuccess(rawChats);
+        } else {
+            root.fetchVaultChat(rawChats);
+        }
+    }
+
+    function hasVaultChat(rawChats) {
+        if (!rawChats) return false;
+        for (var i = 0; i < rawChats.length; i++) {
+            if (TM.isVaultChat(rawChats[i])) return true;
+        }
+        return false;
+    }
+
+    function fetchVaultChat(rawChats) {
+        root.executeHttp("GET", "/v1/chats/search?query=VAULT&limit=5", null, function(vaultData) {
+            var vaultChats = root.itemsOf(vaultData, "chats");
+            root.onRefreshSuccess(rawChats.concat(vaultChats));
+        }, function(err) {
+            root.onRefreshSuccess(rawChats);
+        });
     }
 
     function onRefreshSuccess(data) {
@@ -129,11 +155,18 @@ Item {
         root.checkPendingRefresh();
     }
 
+    function appendUniqueChat(list, seen, item) {
+        if (!item || !item.id || seen[item.id]) return;
+        seen[item.id] = true;
+        list.push(TM.normalizeChat(item));
+    }
+
     function processRefreshedChats(rawList) {
         var eligible = TM.filterEligibleChats(rawList);
         var normalized = [];
+        var seen = {};
         for (var i = 0; i < eligible.length; i++) {
-            normalized.push(TM.normalizeChat(eligible[i]));
+            root.appendUniqueChat(normalized, seen, eligible[i]);
         }
         root.chats = TM.sortChats(normalized);
         root.syncActiveChat();
@@ -223,7 +256,8 @@ Item {
         for (var i = 0; i < raw.length; i++) {
             msgs.push(TM.normalizeMessage(raw[i]));
         }
-        root.applyLoadedMessages(chatId, msgs);
+        var sorted = TM.sortMessages(msgs);
+        root.applyLoadedMessages(chatId, sorted);
     }
 
     function applyLoadedMessages(chatId, msgs) {
@@ -286,7 +320,7 @@ Item {
     function markRead(chatId, messageId) {
         if (!chatId) return;
         var path = "/v1/chats/" + encodeURIComponent(chatId) + "/read";
-        var payload = messageId ? { messageId: messageId } : {};
+        var payload = messageId ? { messageID: messageId, messageId: messageId } : {};
         root.executeHttp("POST", path, payload, function(data) {
             root.onMarkReadSuccess(chatId);
         }, function(err) {
