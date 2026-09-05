@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "../models/TriageModel.js" as TM
 
 Item {
@@ -14,6 +15,32 @@ Item {
 
     property string baseUrl: "http://127.0.0.1:23373"
     property string authToken: ""
+
+    Component.onCompleted: {
+        tokenProc.running = true;
+    }
+
+    Process {
+        id: tokenProc
+        command: ["cat", (Quickshell.env("HOME") || "/home/denial") + "/.config/beeper-relay/token"]
+        stdout: StdioCollector {
+            id: tokenOut
+            waitForEnd: true
+            onStreamFinished: {
+                root.handleTokenLoaded(tokenOut.text);
+            }
+        }
+    }
+
+    function handleTokenLoaded(raw) {
+        var token = (raw || "").trim();
+        if (token === "") return;
+        root.authToken = token;
+        if (root.status === "error") {
+            root.refreshUnread();
+        }
+    }
+
     property int pollInterval: 5000
     property int backoffInterval: 1000
 
