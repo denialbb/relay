@@ -199,18 +199,6 @@ Item {
                 onClicked: root.submit()
             }
         }
-
-        // Security assurance
-        Text {
-            Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
-            text: "Saved to ~/.config/beeper-relay/token (mode 0600, local only)."
-            font.family: root.theme.fontFamily
-            font.pixelSize: 10
-            color: root.theme.textSecondary
-            wrapMode: Text.WordWrap
-            textFormat: Text.PlainText
-        }
     }
 
     function submit() {
