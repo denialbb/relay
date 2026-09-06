@@ -23,6 +23,7 @@ function isMutedOrDisabled(c) {
 function isChatEligible(c) {
   if (!c || !VALID_CHAT_TYPES.has(c.type)) return false;
   if (isVaultChat(c)) return true;
+  if (c.isLowPriority === true) return false;
   if (isMutedOrDisabled(c)) return false;
   return hasUnread(c);
 }
@@ -86,6 +87,8 @@ function normalizeChat(chat) {
     messagesLoaded: Boolean(c.messagesLoaded),
     isReadOnly: Boolean(c.isReadOnly),
     isMuted: Boolean(c.isMuted),
+    isLowPriority: Boolean(c.isLowPriority),
+    isPinned: Boolean(c.isPinned),
   };
 }
 
@@ -129,9 +132,16 @@ function normalizeMessage(message) {
   };
 }
 
+function pinRank(c) {
+  if (c && c.isPinned) return 1;
+  return 0;
+}
+
 function sortChats(chats) {
   if (!Array.isArray(chats)) return [];
   return [...chats].sort((a, b) => {
+    const pinDiff = pinRank(b) - pinRank(a);
+    if (pinDiff !== 0) return pinDiff;
     const timeA = a?.lastActivity ? Date.parse(a.lastActivity) : 0;
     const timeB = b?.lastActivity ? Date.parse(b.lastActivity) : 0;
     return timeB - timeA;
@@ -144,6 +154,49 @@ function calculateUnreadTotal(chats) {
     (acc, c) => acc + (typeof c?.unreadCount === "number" ? c.unreadCount : 0),
     0,
   );
+}
+
+// Pin retention (pure): refresh snapshots from fresh normalized chats,
+// carrying older snapshots for pinned chats that went read (unreadOnly
+// search no longer returns them). Local pins always snapshot when seen.
+function refreshPinSnapshots(fresh, retained, localPins) {
+  const kept = Object.assign({}, retained || {});
+  const list = Array.isArray(fresh) ? fresh : [];
+  for (const c of list) {
+    if (!c || !c.id) continue;
+    if (c.isPinned || (localPins && localPins[c.id])) kept[c.id] = c;
+  }
+  return kept;
+}
+
+// Merge retained pinned snapshots back into the fresh list (absent =
+// read, so zero unread). Sorted pinned-first via sortChats.
+function withRetainedPins(fresh, retained) {
+  const list = Array.isArray(fresh) ? fresh : [];
+  const seen = {};
+  for (const c of list) {
+    if (c && c.id) seen[c.id] = true;
+  }
+  const merged = list.slice();
+  const snaps = retained || {};
+  for (const id in snaps) {
+    if (seen[id]) continue;
+    const snap = snaps[id];
+    if (!snap) continue;
+    merged.push(Object.assign({}, snap, { unreadCount: 0 }));
+  }
+  return sortChats(merged);
+}
+
+// Data minimization: strip preview message content before writing pins to disk
+function stripPreviewsForStorage(retained) {
+  if (!retained || typeof retained !== "object") return {};
+  const out = {};
+  for (const k of Object.keys(retained)) {
+    const snap = retained[k];
+    if (snap) out[k] = Object.assign({}, snap, { preview: null });
+  }
+  return out;
 }
 
 function selectPreview(chat) {
@@ -172,6 +225,58 @@ function reconcilePendingMessage(messages, remote) {
     }
     return m;
   });
+}
+
+function isLocalMessage(m) {
+  return Boolean(m && typeof m.id === "string" && m.id.indexOf("local-") === 0);
+}
+
+function messageTime(m) {
+  var t = m && m.timestamp ? Date.parse(m.timestamp) : NaN;
+  return isNaN(t) ? 0 : t;
+}
+
+function isSameAuthorText(m, local) {
+  return Boolean(m && !isLocalMessage(m) && m.isMine && m.text === local.text);
+}
+
+function isFreshEnough(m, localTime) {
+  return messageTime(m) >= localTime - 300000;
+}
+
+function hasServerEcho(newMessages, local) {
+  if (!Array.isArray(newMessages)) return false;
+  var localTime = messageTime(local);
+  for (const m of newMessages) {
+    if (isSameAuthorText(m, local) && isFreshEnough(m, localTime)) return true;
+  }
+  return false;
+}
+
+function isKeepablePending(m, seen, chatId) {
+  if (!isLocalMessage(m) || seen[m.id]) return false;
+  if (chatId && m.chatId && m.chatId !== chatId) return false;
+  return true;
+}
+
+// Keeps locally-sent messages across service overwrites until the server
+// echo arrives (same text, own, non-local id), then drops the local copy.
+// ponytail: text-match echo; same-text-twice may drop both on first echo,
+// next load corrects it.
+function preserveUnackedMessages(oldMessages, newMessages, chatId) {
+  const base = Array.isArray(newMessages) ? [...newMessages] : [];
+  if (!Array.isArray(oldMessages)) return base;
+  const seen = {};
+  for (const m of base) {
+    if (m && m.id != null) seen[m.id] = true;
+  }
+  for (const m of oldMessages) {
+    if (!isKeepablePending(m, seen, chatId)) continue;
+    if (hasServerEcho(base, m)) continue;
+    base.push(m);
+    seen[m.id] = true;
+  }
+  return base;
 }
 
 function mapApiError(error) {

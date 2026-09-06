@@ -13,6 +13,7 @@ Item {
     property string status: service ? service.status : "idle"
     property string error: service ? service.lastError : ""
     property bool isRefreshing: service ? service.isRefreshing : false
+    property bool sending: service ? service.sendsInFlight > 0 : false
 
     BeeperService {
         id: fallbackService
@@ -23,13 +24,40 @@ Item {
         function onActiveChatChanged() {
             root.handleActiveChatChanged();
         }
+        function onSendFinished(chatId, localId) {
+            root.handleSendFinished(chatId, localId);
+        }
+    }
+
+    Timer {
+        id: echoTimer
+        interval: 5000
+        repeat: true
+        running: root.hasUnackedMessages()
+        onTriggered: {
+            if (root.service) root.service.loadMessages(root.activeChatId);
+        }
+    }
+
+    function hasUnackedMessages() {
+        var msgs = root.activeMessages;
+        if (!msgs) return false;
+        for (var i = 0; i < msgs.length; i++) {
+            if (TM.isLocalMessage(msgs[i])) return true;
+        }
+        return false;
+    }
+
+    function handleSendFinished(chatId, localId) {
+        if (!chatId || chatId !== root.activeChatId) return;
+        if (root.service) root.service.loadMessages(chatId);
     }
 
     function handleActiveChatChanged() {
         var chat = root.service ? root.service.activeChat : null;
         if (!chat) return;
         if (chat.id !== root.activeChatId) return;
-        root.activeMessages = chat.messages ? chat.messages : [];
+        root.activeMessages = TM.preserveUnackedMessages(root.activeMessages, chat.messages, root.activeChatId);
     }
 
     function selectChat(chatId) {
@@ -47,7 +75,7 @@ Item {
             root.activeMessages = [];
             return;
         }
-        root.activeMessages = chat.messages ? chat.messages : [];
+        root.activeMessages = TM.preserveUnackedMessages(root.activeMessages, chat.messages, root.activeChatId);
     }
 
     function closeChat() {
@@ -120,7 +148,28 @@ Item {
         if (!chatId || !text) return;
         if (root.service) {
             root.service.sendText(chatId, text);
+            root.service.applyPreview(chatId, TM.normalizeMessage(root.buildQuickPreview(chatId, text)));
             root.service.markRead(chatId, null);
+        }
+    }
+
+    function buildQuickPreview(chatId, text) {
+        return {
+            id: "local-" + Date.now(),
+            chatId: chatId,
+            type: "TEXT",
+            text: text,
+            senderName: "Me",
+            isMine: true,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    function togglePin(chatId) {
+        var targetId = root.resolveTargetChatId(chatId);
+        if (!targetId) return;
+        if (root.service) {
+            root.service.togglePin(targetId);
         }
     }
 

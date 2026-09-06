@@ -15,6 +15,9 @@ Item {
 
     property string baseUrl: "http://127.0.0.1:23373"
     property string authToken: ""
+    property string configDir: (Quickshell.env("HOME") || "") + "/.config/beeper-relay"
+    property bool tokenLoaded: false
+    readonly property bool hasToken: Boolean(root.authToken && root.authToken.trim().length > 0)
 
     Component.onCompleted: {
         tokenProc.running = true;
@@ -22,14 +25,39 @@ Item {
 
     Process {
         id: tokenProc
-        command: ["cat", (Quickshell.env("HOME") || "/home/denial") + "/.config/beeper-relay/token"]
+        command: ["cat", root.configDir + "/token"]
         stdout: StdioCollector {
             id: tokenOut
             waitForEnd: true
             onStreamFinished: {
+                root.tokenLoaded = true;
                 root.handleTokenLoaded(tokenOut.text);
             }
         }
+    }
+
+    Process {
+        id: saveTokenProc
+        property string pendingToken: ""
+        onExited: function(code) {
+            if (code === 0 && saveTokenProc.pendingToken) {
+                root.authToken = saveTokenProc.pendingToken;
+                saveTokenProc.pendingToken = "";
+                root.initialize();
+            }
+        }
+    }
+
+    function saveToken(rawToken) {
+        var token = (rawToken || "").trim();
+        if (!token) return;
+        saveTokenProc.pendingToken = token;
+        saveTokenProc.command = [
+            "sh", "-c",
+            "mkdir -p -m 700 \"$1\" && (umask 077 && printf '%s' \"$2\" > \"$1/token\")",
+            "--", root.configDir, token
+        ];
+        saveTokenProc.running = true;
     }
 
     function handleTokenLoaded(raw) {
@@ -48,6 +76,15 @@ Item {
     property bool hasPendingRefresh: false
     property var loadingChats: ({})
     property var recentlyMarkedRead: ({})
+    property var localPins: ({})
+    property var retainedPins: ({})
+    property var loadingPreviews: ({})
+    property bool previewsEnabled: true
+    property int sendsInFlight: 0
+    property string pinsPath: root.configDir + "/pins.json"
+    property bool restoringPins: false
+
+    property bool pinnedSeeded: false
 
     signal refreshStarted()
     signal refreshFinished()
@@ -80,6 +117,61 @@ Item {
         if (data.items instanceof Array) return data.items;
         if (data[key] instanceof Array) return data[key];
         return [];
+    }
+
+    FileView {
+        id: pinsFile
+        path: root.pinsPath
+        printErrors: true
+        atomicWrites: true
+        onLoaded: {
+            root.restorePins(pinsFile.text());
+        }
+    }
+
+    onLocalPinsChanged: {
+        root.savePins();
+    }
+
+    onRetainedPinsChanged: {
+        root.savePins();
+    }
+
+    function savePins() {
+        if (root.restoringPins) return;
+        pinsFile.setText(JSON.stringify({
+            localPins: root.localPins,
+            retainedPins: TM.stripPreviewsForStorage(root.retainedPins)
+        }));
+    }
+
+    function restorePins(raw) {
+        var data = root.parsePins(raw);
+        if (!data) return;
+        root.restoringPins = true;
+        root.localPins = data.localPins;
+        root.retainedPins = data.retainedPins;
+        root.restoringPins = false;
+        root.restampPins();
+    }
+
+    function parsePinsJson(raw) {
+        try {
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function validPinsShape(data) {
+        return Boolean(data && typeof data.localPins === "object" && typeof data.retainedPins === "object");
+    }
+
+    function parsePins(raw) {
+        if (!raw) return null;
+        var data = root.parsePinsJson(raw);
+        if (!root.validPinsShape(data)) return null;
+        return { localPins: data.localPins || {}, retainedPins: data.retainedPins || {} };
     }
 
     function initialize() {
@@ -154,6 +246,36 @@ Item {
         root.lastRefreshAt = new Date().toISOString();
         root.refreshFinished();
         root.checkPendingRefresh();
+        root.seedPinnedChats();
+    }
+
+    function seedPinnedChats() {
+        if (root.pinnedSeeded) return;
+        root.pinnedSeeded = true;
+        root.executeHttp("GET", "/v1/chats/search?type=any&limit=200", null, function(data) {
+            root.applyPinnedSeed(data);
+        }, function(err) {
+            root.pinnedSeeded = false;
+        });
+    }
+
+    function applyPinnedSeed(data) {
+        var raw = root.itemsOf(data, "chats");
+        var fresh = [];
+        for (var i = 0; i < raw.length; i++) {
+            var norm = root.stampPinnedChat(raw[i]);
+            if (norm) fresh.push(norm);
+        }
+        if (fresh.length === 0) return;
+        root.retainedPins = TM.refreshPinSnapshots(fresh, root.retainedPins, root.localPins);
+        root.chats = root.withRetainedPins(root.chats);
+    }
+
+    function stampPinnedChat(item) {
+        if (!item || !item.id || !item.isPinned) return null;
+        var norm = TM.normalizeChat(item);
+        if (root.localPins[item.id]) norm.isPinned = true;
+        return norm;
     }
 
     function recordRecentlyMarkedRead(chatId) {
@@ -168,16 +290,19 @@ Item {
         return (Date.now() - t <= 10000);
     }
 
+    function shouldKeepAfterRead(c, chatId) {
+        if (!c || c.id !== chatId) return false;
+        if (TM.isVaultChat(c)) return true;
+        return Boolean(c.isPinned || root.localPins[c.id]);
+    }
+
     function removeOrZeroChat(chatId) {
         var updated = [];
         for (var i = 0; i < root.chats.length; i++) {
             var c = root.chats[i];
-            if (!c) continue;
-            if (c.id === chatId) {
-                if (TM.isVaultChat(c)) {
-                    updated.push(Object.assign({}, c, { unreadCount: 0 }));
-                }
-            } else {
+            if (root.shouldKeepAfterRead(c, chatId)) {
+                updated.push(Object.assign({}, c, { unreadCount: 0 }));
+            } else if (c && c.id !== chatId) {
                 updated.push(c);
             }
         }
@@ -203,7 +328,9 @@ Item {
             root.appendVaultIfMatch(list, item);
             return;
         }
-        list.push(TM.normalizeChat(item));
+        var norm = TM.normalizeChat(item);
+        if (root.localPins[item.id]) norm.isPinned = true;
+        list.push(norm);
     }
 
     function processRefreshedChats(rawList) {
@@ -213,8 +340,112 @@ Item {
         for (var i = 0; i < eligible.length; i++) {
             root.appendUniqueChat(normalized, seen, eligible[i]);
         }
-        root.chats = TM.sortChats(normalized);
+        var fresh = TM.sortChats(normalized);
+        root.updatePinSnapshots(fresh);
+        root.chats = root.withRetainedPins(fresh);
         root.syncActiveChat();
+        root.loadPreviews();
+    }
+
+    function updatePinSnapshots(fresh) {
+        root.retainedPins = TM.refreshPinSnapshots(fresh, root.retainedPins, root.localPins);
+    }
+
+    function withRetainedPins(fresh) {
+        return TM.withRetainedPins(fresh, root.retainedPins);
+    }
+
+    function togglePin(chatId) {
+        if (!chatId) return;
+        var pins = Object.assign({}, root.localPins);
+        if (pins[chatId]) delete pins[chatId];
+        else pins[chatId] = true;
+        root.localPins = pins;
+        var kept = Object.assign({}, root.retainedPins);
+        if (pins[chatId]) {
+            var c = root.findChat(chatId);
+            if (c) kept[chatId] = c;
+        } else {
+            delete kept[chatId];
+        }
+        root.retainedPins = kept;
+        root.restampPins();
+    }
+
+    function restampPins() {
+        var out = [];
+        for (var i = 0; i < root.chats.length; i++) {
+            var c = root.chats[i];
+            if (!c) continue;
+            if (root.localPins[c.id] && !c.isPinned) {
+                c = Object.assign({}, c, { isPinned: true });
+            }
+            out.push(c);
+        }
+        root.chats = TM.sortChats(out);
+        root.loadPreviews();
+    }
+
+    function shouldLoadPreview(c) {
+        return Boolean(c && c.id && !c.preview);
+    }
+
+    function loadPreviews() {
+        if (!root.previewsEnabled) return;
+        for (var i = 0; i < root.chats.length; i++) {
+            if (root.shouldLoadPreview(root.chats[i])) root.loadPreview(root.chats[i].id);
+        }
+    }
+
+    function loadPreview(chatId) {
+        if (!chatId) return;
+        if (root.loadingPreviews[chatId]) return;
+        var loads = Object.assign({}, root.loadingPreviews);
+        loads[chatId] = true;
+        root.loadingPreviews = loads;
+        var path = "/v1/chats/" + encodeURIComponent(chatId) + "/messages";
+        root.executeHttp("GET", path, null, function(data) {
+            root.onPreviewLoaded(chatId, data);
+        }, function(err) {
+            root.onPreviewError(chatId);
+        });
+    }
+
+    function onPreviewLoaded(chatId, data) {
+        root.finishPreviewLoad(chatId);
+        var raw = root.itemsOf(data, "messages");
+        if (raw.length === 0) return;
+        var sorted = TM.sortMessages(raw);
+        root.applyPreview(chatId, TM.normalizeMessage(sorted[sorted.length - 1]));
+    }
+
+    function applyPreview(chatId, preview) {
+        var out = [];
+        for (var i = 0; i < root.chats.length; i++) {
+            var c = root.chats[i];
+            if (c && c.id === chatId) c = Object.assign({}, c, { preview: preview });
+            out.push(c);
+        }
+        root.chats = out;
+        root.refreshSnapshotPreview(chatId, preview);
+    }
+
+    function refreshSnapshotPreview(chatId, preview) {
+        var snap = root.retainedPins[chatId];
+        if (!snap) return;
+        var kept = Object.assign({}, root.retainedPins);
+        kept[chatId] = Object.assign({}, snap, { preview: preview });
+        root.retainedPins = kept;
+    }
+
+    function onPreviewError(chatId) {
+        root.finishPreviewLoad(chatId);
+    }
+
+    function finishPreviewLoad(chatId) {
+        var loads = Object.assign({}, root.loadingPreviews);
+        delete loads[chatId];
+        root.loadingPreviews = loads;
     }
 
     function syncActiveChat() {
@@ -329,6 +560,7 @@ Item {
         if (!chatId) return;
         if (!text) return;
         var localId = localMessageId || ("local-" + Date.now());
+        root.sendsInFlight++;
         root.sendStarted(chatId, localId);
         var path = "/v1/chats/" + encodeURIComponent(chatId) + "/messages";
         root.executeHttp("POST", path, { text: text }, function(data) {
@@ -339,11 +571,13 @@ Item {
     }
 
     function onSendSuccess(chatId, localId, data) {
+        root.sendsInFlight = Math.max(0, root.sendsInFlight - 1);
         root.sendFinished(chatId, localId);
         if (root.activeChat && root.activeChat.id === chatId) {
             root.reconcileSentMessage(localId, data ? data.id : null);
         }
         root.refreshUnread();
+        root.loadMessages(chatId);
     }
 
     function reconcileSentMessage(localId, remoteId) {
@@ -357,6 +591,7 @@ Item {
     }
 
     function onSendFailure(chatId, localId, err) {
+        root.sendsInFlight = Math.max(0, root.sendsInFlight - 1);
         root.sendFinished(chatId, localId);
         root.lastError = TM.mapApiError(err);
         root.errorChanged();
