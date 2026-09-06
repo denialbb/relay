@@ -255,11 +255,11 @@ FocusScope {
         if (!chat) return;
         root.quickReplyChat = chat;
         root.quickReplyOpen = true;
-        quickReplyEdit.forceActiveFocus();
+        quickReplyComposer.focusInput();
     }
 
     function releaseInputs() {
-        quickReplyEdit.focus = false;
+        quickReplyComposer.blur();
         if (conversationView && typeof conversationView.blurComposer === "function") {
             conversationView.blurComposer();
         }
@@ -267,8 +267,8 @@ FocusScope {
     }
 
     function closeQuickReply() {
-        quickReplyEdit.text = "";
-        quickReplyEdit.focus = false;
+        quickReplyComposer.text = "";
+        quickReplyComposer.blur();
         root.quickReplyOpen = false;
         root.quickReplyChat = null;
         root.forceActiveFocus();
@@ -295,23 +295,6 @@ FocusScope {
         root.dispatchQuickReply(chat.id, t);
         if (!root.isChatPinned(chat.id)) root.dismissChat(chat.id);
         root.closeQuickReply();
-    }
-
-    function handleQuickReplyKey(event) {
-        if (event.key === Qt.Key_Escape) {
-            root.closeQuickReply();
-            event.accepted = true;
-        } else if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_J || event.key === Qt.Key_Down)) {
-            root.growHeight();
-            event.accepted = true;
-        } else if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_K || event.key === Qt.Key_Up)) {
-            root.shrinkHeight();
-            event.accepted = true;
-        } else if (root.isActivateKey(event.key) && !(event.modifiers & Qt.ShiftModifier)) {
-            var msg = quickReplyEdit.text;
-            root.submitQuickReply(msg);
-            event.accepted = true;
-        }
     }
 
     function isQuitKey(key) {
@@ -681,63 +664,36 @@ FocusScope {
             }
         }
 
-        // Quick Reply Bar
-        Rectangle {
+        // Quick Reply Bar (uses Composer for unified styling, rounding, and text centering)
+        Item {
             id: quickReplyBar
             anchors.bottom: footerBar.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: Math.min(100, Math.max(38, quickReplyEdit.implicitHeight + 16))
+            anchors.leftMargin: metrics.spacingMD
+            anchors.rightMargin: metrics.spacingMD
+            anchors.bottomMargin: metrics.spacingSM
+            implicitHeight: quickReplyComposer.implicitHeight
             visible: root.quickReplyOpen && !root.inConversation
-            color: theme.surfaceRaised
-            border.color: theme.border
-            border.width: 1
 
-            RowLayout {
+            Composer {
+                id: quickReplyComposer
                 anchors.fill: parent
-                anchors.leftMargin: metrics.spacingMD
-                anchors.rightMargin: metrics.spacingMD
-                anchors.topMargin: metrics.spacingXS
-                anchors.bottomMargin: metrics.spacingXS
-                spacing: metrics.spacingSM
-
-                Text {
-                    text: root.quickReplyChat ? (root.quickReplyChat.title + ":") : ""
-                    color: theme.accent
-                    font.family: theme.fontFamily
-                    font.pixelSize: 11
-                    font.bold: true
-                    elide: Text.ElideRight
-                    Layout.maximumWidth: 100
-                    Layout.alignment: Qt.AlignTop
+                prefixText: root.quickReplyChat ? (root.quickReplyChat.title + ":") : ""
+                placeholderText: "Reply…"
+                theme: root.theme
+                metrics: root.metrics
+                onSubmit: function(text) {
+                    root.submitQuickReply(text);
                 }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    Text {
-                        anchors.fill: parent
-                        visible: quickReplyEdit.text.length === 0
-                        text: "Reply… (Enter to send, Esc to cancel)"
-                        color: theme.textSecondary
-                        font.family: theme.fontFamily
-                        font.pixelSize: 12
-                    }
-
-                    TextEdit {
-                        id: quickReplyEdit
-                        anchors.fill: parent
-                        color: theme.textPrimary
-                        font.family: theme.fontFamily
-                        font.pixelSize: 12
-                        wrapMode: TextEdit.Wrap
-                        selectByMouse: true
-
-                        Keys.onPressed: function(event) {
-                            root.handleQuickReplyKey(event);
-                        }
-                    }
+                onEscapePressed: {
+                    root.closeQuickReply();
+                }
+                onGrowHeightRequested: {
+                    root.growHeight();
+                }
+                onShrinkHeightRequested: {
+                    root.shrinkHeight();
                 }
             }
         }

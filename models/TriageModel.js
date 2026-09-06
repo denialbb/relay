@@ -270,8 +270,6 @@ function isKeepablePending(m, seen, chatId) {
 
 // Keeps locally-sent messages across service overwrites until the server
 // echo arrives (same text, own, non-local id), then drops the local copy.
-// ponytail: text-match echo; same-text-twice may drop both on first echo,
-// next load corrects it.
 function preserveUnackedMessages(oldMessages, newMessages, chatId) {
   const base = Array.isArray(newMessages) ? [...newMessages] : [];
   if (!Array.isArray(oldMessages)) return base;

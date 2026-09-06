@@ -25,6 +25,9 @@ function formatSnippet(chat) {
   if (!preview) return "";
   if (preview.kind !== "text") return "Unsupported message";
   var text = extractFirstLine(preview.text);
+  if (preview.isMine) {
+    return truncate("You: " + text, 90);
+  }
   if (chat.type === "group" && preview.senderName) {
     return truncate(preview.senderName + ": " + text, 90);
   }

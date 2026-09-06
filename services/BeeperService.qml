@@ -108,7 +108,7 @@ Item {
         }
     }
 
-    // ponytail: XHR is the only HTTP primitive in the QML runtime (no fetch),
+    // XHR is the only HTTP primitive in the QML runtime (no fetch),
     // so transport lives here; response-shape normalization is canonical in
     // BeeperApi.extractItems and mirrored below in itemsOf().
     function itemsOf(data, key) {

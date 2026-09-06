@@ -11,13 +11,13 @@ Relay provides a transient, lightweight desktop surface to triage incoming direc
 ## Status & Release (v1.0.0)
 
 **v1.0.0 official release ready:**
-- **Compact Surface**: Halved drawer height to a sleek 300px compact surface (`BarWidget.qml` cappedContentHeight: 310px; `TriageDrawer.qml` implicitHeight: 300px).
+- **Compact Surface**: Halved drawer height to a sleek 300px compact surface (`BarWidget.qml` dynamic height; `TriageDrawer.qml` implicitHeight: 300px with interactive `Ctrl+j`/`Ctrl+k` resizing between 220px and 700px).
 - **Fast Keyboard Triage**: Full keyboard navigation (`j`/`k`, `Enter`/`o`, `r`, `b`, `p`, `h`, `?`, `Esc`/`q`) with instant first-item selection on load.
-- **Inline Quick Reply**: Direct inline reply modal (`i`) from the chat list with auto-expanding multiline input up to 100px.
-- **Optimistic Composer**: Compact message bubbles matching Omarchy tokens; `Enter` sends with instant pending spinner, `Shift+Enter` inserts newlines.
+- **Unified Rounded Composer**: Shared compact `Composer.qml` for both in-chat and inline quick reply (`i`), featuring vertically centered text, rounded border radius, auto-expansion, `Enter` sending, and `Shift+Enter` newlines.
+- **Smart Chat Snippets**: Chat list snippets display clean first-line previews with automatic `You:` prefix for user-sent messages and sender prefix for group chats.
 - **Pin Retention & Privacy**: Pinned chats sort first and survive inbox zero clearance; message text is stripped from disk snapshots.
 - **Security & Onboarding**: First-run `OnboardingView.qml` prompts for local token when missing. Storage is hardened with directory permissions `0700` and files `0600` (`umask 077`).
-- **Quality Gates**: 65 unit and contract tests passing across 17 suites (`node:test`) with full mock API contracts, pin retention, error mapping, and geometry crop tests; strict McCabe cyclomatic complexity gate ($C \le 8$).
+- **Quality Gates**: 71 unit and contract tests passing across 18 suites (`node:test`) with full mock API contracts, pin retention, error mapping, key hints wrapping, and geometry crop tests; strict McCabe cyclomatic complexity gate ($C \le 8$).
 
 ---
 
@@ -133,7 +133,7 @@ omarchy plugin validate ./
 # Run QML linter (when qmllint is available)
 qmllint BarWidget.qml TriageDrawer.qml components/*.qml services/*.qml models/*.qml theme/*.qml
 
-# Run test suite (65 tests across 17 suites)
+# Run test suite (71 tests across 18 suites)
 node --test tests/
 
 # Verify McCabe cyclomatic complexity constraints (C <= 8 / 10)

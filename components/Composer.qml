@@ -1,5 +1,3 @@
-// Composer.qml — Reply composer with Ctrl+Enter sending and busy state.
-// Spec: docs/relay_beeper_triage_spec.md §7.5, §9.2, §15.
 import QtQuick
 import QtQuick.Layouts
 import "../theme"
@@ -9,7 +7,13 @@ Item {
 
     property bool enabled: true
     property bool busy: false
+    property string placeholderText: "Reply…"
+    property string prefixText: ""
+    property int maxExpandedHeight: 100
     signal submit(string text)
+    signal escapePressed()
+    signal growHeightRequested()
+    signal shrinkHeightRequested()
 
     property RelayTheme theme: RelayTheme {}
     property RelayMetrics metrics: RelayMetrics {}
@@ -23,7 +27,7 @@ Item {
     readonly property int buttonCursor: root.canSubmit ? Qt.PointingHandCursor : Qt.ArrowCursor
 
     implicitWidth: 360
-    implicitHeight: Math.max(28, container.implicitHeight)
+    implicitHeight: Math.min(root.maxExpandedHeight, Math.max(28, container.implicitHeight))
     width: parent ? parent.width : implicitWidth
 
     Rectangle {
@@ -33,7 +37,7 @@ Item {
         color: root.theme.surfaceRaised
         border.color: root.borderColor
         border.width: 1
-        radius: root.metrics.radiusSM
+        radius: root.metrics.radiusMD
 
         RowLayout {
             id: contentRow
@@ -44,6 +48,19 @@ Item {
             anchors.bottomMargin: root.metrics.spacingXS
             spacing: root.metrics.spacingSM
 
+            Text {
+                id: prefixLabel
+                visible: root.prefixText.length > 0
+                text: root.prefixText
+                color: root.theme.accent
+                font.family: root.theme.fontFamily
+                font.pixelSize: 11
+                font.bold: true
+                elide: Text.ElideRight
+                Layout.maximumWidth: 100
+                Layout.alignment: Qt.AlignVCenter
+            }
+
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -51,21 +68,24 @@ Item {
 
                 Text {
                     id: placeholder
-                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     anchors.leftMargin: 2
-                    anchors.topMargin: 2
                     visible: textEdit.text.length === 0
-                    text: "Reply…"
+                    text: root.placeholderText
                     color: root.theme.textSecondary
                     font.family: root.theme.fontFamily
                     font.pixelSize: 12
+                    elide: Text.ElideRight
                 }
 
                 TextEdit {
                     id: textEdit
-                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     anchors.leftMargin: 2
-                    anchors.topMargin: 2
                     color: root.inputTextColor
                     readOnly: root.inputReadOnly
                     wrapMode: TextEdit.Wrap
@@ -79,13 +99,11 @@ Item {
                 }
             }
 
-            // Right side: Busy indicator or Send hint / button
             Item {
                 Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 implicitWidth: root.busy ? 18 : actionRow.implicitWidth
                 implicitHeight: 20
 
-                // Busy spinner
                 Item {
                     id: busyIndicator
                     visible: root.busy
@@ -111,7 +129,6 @@ Item {
                     }
                 }
 
-                // Send action & shortcut hint
                 RowLayout {
                     id: actionRow
                     visible: !root.busy
@@ -153,6 +170,7 @@ Item {
     }
 
     readonly property bool isInputFocused: textEdit.activeFocus
+    property alias text: textEdit.text
 
     function focusInput() {
         textEdit.forceActiveFocus()
@@ -168,10 +186,29 @@ Item {
         return isEnter && !isShift
     }
 
+    function handleResizeKeys(event) {
+        var isCtrl = (event.modifiers & Qt.ControlModifier) !== 0
+        if (!isCtrl) return false
+        if (event.key === Qt.Key_J || event.key === Qt.Key_Down) {
+            root.growHeightRequested()
+            return true
+        }
+        if (event.key === Qt.Key_K || event.key === Qt.Key_Up) {
+            root.shrinkHeightRequested()
+            return true
+        }
+        return false
+    }
+
     function handleKeyPress(event) {
         if (!event) return
         if (event.key === Qt.Key_Escape) {
             root.blur()
+            root.escapePressed()
+            event.accepted = true
+            return
+        }
+        if (root.handleResizeKeys(event)) {
             event.accepted = true
             return
         }

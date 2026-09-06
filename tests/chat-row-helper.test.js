@@ -35,6 +35,20 @@ describe("ChatRowHelper", () => {
     assert.equal(chatRowHelper.formatSnippet(chat), "Hey there");
   });
 
+  it("formatSnippet prefixes 'You: ' when last message is from user", () => {
+    const singleChat = {
+      type: "single",
+      preview: { kind: "text", isMine: true, text: "On my way" },
+    };
+    assert.equal(chatRowHelper.formatSnippet(singleChat), "You: On my way");
+
+    const groupChat = {
+      type: "group",
+      preview: { kind: "text", isMine: true, senderName: "Me", text: "Got it" },
+    };
+    assert.equal(chatRowHelper.formatSnippet(groupChat), "You: Got it");
+  });
+
   it("getInitials extracts first uppercase letter", () => {
     assert.equal(chatRowHelper.getInitials(null), "?");
     assert.equal(chatRowHelper.getInitials(""), "?");
