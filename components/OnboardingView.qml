@@ -21,7 +21,7 @@ Item {
     ColumnLayout {
         anchors.centerIn: parent
         width: Math.min(parent.width - root.metrics.spacingMD * 2, 340)
-        spacing: root.metrics.spacingMD
+        spacing: root.metrics.spacingSM
 
         // Key / Shield icon
         Rectangle {

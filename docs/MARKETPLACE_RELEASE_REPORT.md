@@ -26,7 +26,7 @@ Relay is deliberately **not** a Beeper client replacement:
 
 | Feature | Description |
 | :--- | :--- |
-| **Compact Adaptive Surface** | Base height of 300px; interactive `Ctrl+J` / `Ctrl+K` dynamically scales drawer height between 220px and 700px with smooth cubic animation and bounds-safe scroll clamping. |
+| **Adaptive Drawer Layout** | Base height of 400px; interactive `Ctrl+J` / `Ctrl+K` dynamically scales drawer height between 220px and 700px with smooth cubic animation and bounds-safe scroll clamping. |
 | **Unified Rounded Composer** | Unified [`components/Composer.qml`](file:///home/denial/.config/omarchy/plugins/denial.beeper-relay/components/Composer.qml) for both conversation view and inline quick reply modal (`i`). Features vertically centered input, rounded metrics, auto-expansion up to 100px, `Enter` to send, and `Shift+Enter` for newlines. |
 | **Zero-Flicker Optimistic Triage** | Instantaneous local state updates when marking chats read (`r`). Eliminates redundant network refetches, preserves pinned chat snapshot previews across synchronization cycles, and prevents delegate re-instantiation thrashing. |
 | **Clean Snippet Formatting** | Chat list snippets prefix user-sent messages with `You: ` and cleanly truncate to first-line plain text with HTML stripped. |

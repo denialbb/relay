@@ -20,7 +20,7 @@ FocusScope {
     implicitWidth: 400
     implicitHeight: root.drawerHeight
 
-    property int drawerHeight: 300
+    property int drawerHeight: 400
     readonly property int minDrawerHeight: 220
     readonly property int maxDrawerHeight: 700
     readonly property int heightStep: 50

@@ -10,7 +10,7 @@ This document describes the runtime design, separation of concerns, data flow, s
 ┌─────────────────────────────────────────────────────────────┐
 │  Presentation Layer (QML)                                  │
 │  BarWidget.qml, TriageDrawer.qml, components/*.qml          │
-│  - 300px compact surface, slide transitions, focus trapping │
+│  - 400px adaptive surface, slide transitions, focus trapping │
 │  - Inline quick reply modal & eliding key hints footer      │
 │  - Never makes HTTP requests or parses Beeper JSON schemas  │
 └──────────────────────────────┬──────────────────────────────┘
