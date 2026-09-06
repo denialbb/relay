@@ -17,7 +17,19 @@ FocusScope {
     signal requestOpenInBeeper(string chatId)
 
     implicitWidth: 400
-    implicitHeight: 300
+    implicitHeight: root.drawerHeight
+
+    property int drawerHeight: 300
+    readonly property int minDrawerHeight: 220
+    readonly property int maxDrawerHeight: 700
+    readonly property int heightStep: 50
+
+    Behavior on drawerHeight {
+        NumberAnimation {
+            duration: 180
+            easing.type: Easing.OutCubic
+        }
+    }
 
     focus: true
 
@@ -91,6 +103,16 @@ FocusScope {
             root.togglePinCurrent();
         }
         event.accepted = true;
+    }
+
+    function growHeight() {
+        var target = Math.min(root.maxDrawerHeight, root.drawerHeight + root.heightStep);
+        if (target !== root.drawerHeight) root.drawerHeight = target;
+    }
+
+    function shrinkHeight() {
+        var target = Math.max(root.minDrawerHeight, root.drawerHeight - root.heightStep);
+        if (target !== root.drawerHeight) root.drawerHeight = target;
     }
 
     function findChatById(list, id) {
@@ -278,6 +300,12 @@ FocusScope {
         if (event.key === Qt.Key_Escape) {
             root.closeQuickReply();
             event.accepted = true;
+        } else if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_J || event.key === Qt.Key_Down)) {
+            root.growHeight();
+            event.accepted = true;
+        } else if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_K || event.key === Qt.Key_Up)) {
+            root.shrinkHeight();
+            event.accepted = true;
         } else if (root.isActivateKey(event.key) && !(event.modifiers & Qt.ShiftModifier)) {
             var msg = quickReplyEdit.text;
             root.submitQuickReply(msg);
@@ -298,7 +326,13 @@ FocusScope {
     }
 
     function routeCommonKey(event) {
-        if (root.isQuitKey(event.key)) {
+        if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_J || event.key === Qt.Key_Down)) {
+            root.growHeight();
+            event.accepted = true;
+        } else if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_K || event.key === Qt.Key_Up)) {
+            root.shrinkHeight();
+            event.accepted = true;
+        } else if (root.isQuitKey(event.key)) {
             root.handleEscape();
             event.accepted = true;
         } else if (event.key === Qt.Key_R) {
@@ -397,6 +431,17 @@ FocusScope {
             if (event.key === Qt.Key_Escape) {
                 root.releaseInputs();
                 event.accepted = true;
+                return;
+            }
+            if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_J || event.key === Qt.Key_Down)) {
+                root.growHeight();
+                event.accepted = true;
+                return;
+            }
+            if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_K || event.key === Qt.Key_Up)) {
+                root.shrinkHeight();
+                event.accepted = true;
+                return;
             }
             return;
         }
@@ -777,6 +822,7 @@ FocusScope {
             { key: "j/k", label: "scroll" },
             { key: "i", label: "reply" },
             { key: "p", label: "pin" },
+            { key: "C-j/k", label: "size" },
             { key: "r", label: "read" },
             { key: "b", label: "beeper" },
             { key: "q", label: "back" },
@@ -800,6 +846,7 @@ FocusScope {
             { key: "i", label: "reply" },
             { key: "p", label: "pin" },
             { key: "h", label: root.hidePinned ? "show pinned" : "hide pinned" },
+            { key: "C-j/k", label: "size" },
             { key: "r", label: "read" },
             { key: "b", label: "beeper" },
             { key: "q", label: "close" },

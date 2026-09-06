@@ -46,6 +46,16 @@ Flickable {
     }
 
     onSelectedIndexChanged: root.ensureIndexVisible(root.selectedIndex)
+    onHeightChanged: {
+        root.clampContentY()
+        root.ensureIndexVisible(root.selectedIndex)
+    }
+
+    function clampContentY() {
+        var maxY = Math.max(0, root.contentHeight - root.height)
+        if (root.contentY > maxY) root.contentY = maxY
+        if (root.contentY < 0) root.contentY = 0
+    }
 
     function ensureIndexVisible(idx) {
         if (idx < 0 || idx >= repeater.count) return

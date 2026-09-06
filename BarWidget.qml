@@ -51,7 +51,7 @@ Panel {
         padding: 0
         focusTarget: drawer
         contentWidth: panel.fittedContentWidth(Style.space(400))
-        contentHeight: panel.cappedContentHeight(Style.space(310))
+        contentHeight: panel.cappedContentHeight(Style.space(drawer.drawerHeight))
 
         TriageDrawer {
             id: drawer

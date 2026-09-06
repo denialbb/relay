@@ -57,6 +57,10 @@ Item {
                 onCountChanged: {
                     messageListView.positionViewAtEnd()
                 }
+
+                onHeightChanged: {
+                    root.clampScroll()
+                }
             }
         }
 
@@ -81,6 +85,13 @@ Item {
         property: "contentY"
         duration: 150
         easing.type: Easing.OutCubic
+    }
+
+    function clampScroll() {
+        var minY = messageListView.originY
+        var maxY = Math.max(minY, minY + messageListView.contentHeight - messageListView.height)
+        if (messageListView.contentY > maxY) messageListView.contentY = maxY
+        if (messageListView.contentY < minY) messageListView.contentY = minY
     }
 
     function scrollBy(delta) {

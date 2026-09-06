@@ -25,6 +25,8 @@ Relay is designed as an unread triage tool operated entirely from the keyboard.
 | `k` or `Up` | Conversation | Scroll message history up |
 | `Enter` | Composer / Quick Reply | Send message (shows immediate optimistic pending state with spinner) |
 | `Shift + Enter` | Composer / Quick Reply | Insert newline |
+| `Ctrl + j` (or `Ctrl + Down`) | Any | Grow drawer height (+50px step, animated, max 700px) |
+| `Ctrl + k` (or `Ctrl + Up`) | Any | Shrink drawer height (-50px step, animated, min 220px) |
 
 ---
 

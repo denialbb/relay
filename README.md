@@ -61,6 +61,8 @@ Relay is built for pure keyboard control:
 | `Esc` (or `q`) | Any | Close drawer, cancel quick reply, or return from conversation to chat list |
 | `Enter` | Composer / Quick Reply | Send message (immediate optimistic pending state with spinner) |
 | `Shift+Enter` | Composer / Quick Reply | Insert newline |
+| `Ctrl+j` (or `Ctrl+Down`) | Any | Grow drawer height (+50px step, animated, max 700px) |
+| `Ctrl+k` (or `Ctrl+Up`) | Any | Shrink drawer height (-50px step, animated, min 220px) |
 
 *Note: Selecting or viewing a chat never marks it read automatically. Marking read is always an explicit action (`r`).*
 
