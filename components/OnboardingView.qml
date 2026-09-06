@@ -103,6 +103,18 @@ Item {
                 wrapMode: Text.WordWrap
                 textFormat: Text.PlainText
             }
+
+            // Faded sensitive action note
+            Text {
+                Layout.fillWidth: true
+                text: "Settings > Integrations > Approved connections > token - sensitive action"
+                font.family: root.theme.fontFamily
+                font.pixelSize: 10
+                color: root.theme.textSecondary
+                wrapMode: Text.WordWrap
+                textFormat: Text.PlainText
+                bottomPadding: 4
+            }
         }
 
         // Token Input Container
