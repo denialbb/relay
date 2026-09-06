@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "denialbb.beeper-relay",
   "name": "Relay",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "author": "Daniel Biasiotto",
   "license": "MIT",
   "homepage": "https://github.com/denialbb/relay",
