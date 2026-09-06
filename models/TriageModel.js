@@ -167,13 +167,24 @@ function calculateUnreadTotal(chats) {
 
 // Pin retention (pure): refresh snapshots from fresh normalized chats,
 // carrying older snapshots for pinned chats that went read (unreadOnly
+function mergePinSnapshot(c, oldSnap) {
+  const preview = c.preview || (oldSnap ? oldSnap.preview : null);
+  return Object.assign({}, oldSnap, c, { preview });
+}
+
+function shouldRetainPin(c, localPins) {
+  if (!c || !c.id) return false;
+  return Boolean(c.isPinned || (localPins && localPins[c.id]));
+}
+
+// Retain snapshots of pinned chats so they stay visible when read (unread
 // search no longer returns them). Local pins always snapshot when seen.
 function refreshPinSnapshots(fresh, retained, localPins) {
   const kept = Object.assign({}, retained || {});
   const list = Array.isArray(fresh) ? fresh : [];
   for (const c of list) {
-    if (!c || !c.id) continue;
-    if (c.isPinned || (localPins && localPins[c.id])) kept[c.id] = c;
+    if (!shouldRetainPin(c, localPins)) continue;
+    kept[c.id] = mergePinSnapshot(c, kept[c.id]);
   }
   return kept;
 }

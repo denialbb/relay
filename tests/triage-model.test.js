@@ -252,6 +252,15 @@ describe("pin retention", () => {
     assert.deepEqual(Object.keys(kept).sort(), ["a", "b", "c"]);
   });
 
+  it("refreshPinSnapshots preserves existing preview when incoming has none", () => {
+    const kept = refreshPinSnapshots(
+      [{ id: "a", isPinned: true, preview: null }],
+      { a: { id: "a", isPinned: true, preview: { text: "saved preview" } } },
+      null,
+    );
+    assert.equal(kept.a.preview?.text, "saved preview");
+  });
+
   it("withRetainedPins re-adds absent pins zeroed and sorted first", () => {
     const out = withRetainedPins(
       [{ id: "fresh", lastActivity: "2026-09-04T10:00:00Z" }],

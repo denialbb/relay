@@ -133,7 +133,7 @@ omarchy plugin validate ./
 # Run QML linter (when qmllint is available)
 qmllint BarWidget.qml TriageDrawer.qml components/*.qml services/*.qml models/*.qml theme/*.qml
 
-# Run test suite (71 tests across 18 suites)
+# Run test suite (72 tests across 18 suites)
 node --test tests/
 
 # Verify McCabe cyclomatic complexity constraints (C <= 8 / 10)

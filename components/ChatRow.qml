@@ -74,12 +74,14 @@ Rectangle {
                 anchors.fill: parent
                 source: (root.chat && root.chat.avatarUrl) ? root.chat.avatarUrl : ""
                 fillMode: Image.PreserveAspectCrop
-                visible: status === Image.Ready
+                cache: true
+                visible: (source !== "") && (status !== Image.Error)
+                opacity: status === Image.Ready ? 1.0 : 0.0
             }
 
             Text {
                 anchors.centerIn: parent
-                visible: !avatarImg.visible
+                visible: !root.chat || !root.chat.avatarUrl || avatarImg.status === Image.Error
                 text: Helper.getInitials(root.chat ? root.chat.title : "")
                 color: root.theme.textPrimary
                 font.family: root.theme.fontFamily

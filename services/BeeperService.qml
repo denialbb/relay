@@ -292,12 +292,23 @@ Item {
         return Boolean(c.isPinned || root.localPins[c.id]);
     }
 
+    function syncRetainedPinRead(chatId, zeroed) {
+        var snap = root.retainedPins ? root.retainedPins[chatId] : null;
+        if (!snap) return;
+        var copy = Object.assign({}, root.retainedPins);
+        var prev = zeroed.preview || snap.preview;
+        copy[chatId] = Object.assign({}, snap, { unreadCount: 0, preview: prev });
+        root.retainedPins = copy;
+    }
+
     function removeOrZeroChat(chatId) {
         var updated = [];
         for (var i = 0; i < root.chats.length; i++) {
             var c = root.chats[i];
             if (root.shouldKeepAfterRead(c, chatId)) {
-                updated.push(Object.assign({}, c, { unreadCount: 0 }));
+                var zeroed = Object.assign({}, c, { unreadCount: 0 });
+                updated.push(zeroed);
+                root.syncRetainedPinRead(chatId, zeroed);
             } else if (c && c.id !== chatId) {
                 updated.push(c);
             }
@@ -608,8 +619,6 @@ Item {
 
     function onMarkReadSuccess(chatId) {
         root.updateChatUnreadZero(chatId);
-        root.removeOrZeroChat(chatId);
-        root.refreshUnread();
     }
 
     function updateChatUnreadZero(chatId) {

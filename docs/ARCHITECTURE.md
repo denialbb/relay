@@ -102,7 +102,7 @@ All UI components consume semantic tokens (`theme.surfaceRaised`, `metrics.spaci
 
 ## 5. Quality Gates & Testing
 
-- **Contract & Unit Tests**: 71 tests across 18 suites (`node:test`) verifying mock API contracts, model normalization, optimistic sending reconciliation, pin retention, error mapping, key hints wrapping, and geometry crop calculations.
+- **Contract & Unit Tests**: 72 tests across 18 suites (`node:test`) verifying mock API contracts, model normalization, optimistic sending reconciliation, pin retention, error mapping, key hints wrapping, and geometry crop calculations.
 - **McCabe Cyclomatic Complexity**: Enforced via `tools/check-complexity.mjs`:
   - Domain / Model JS: $C \le 8$
   - API Adapter JS: $C \le 8$
