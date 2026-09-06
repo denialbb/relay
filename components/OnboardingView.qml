@@ -14,6 +14,10 @@ Item {
     implicitWidth: 360
     implicitHeight: 380
 
+    onVisibleChanged: {
+        if (visible) root.focusInput()
+    }
+
     ColumnLayout {
         anchors.centerIn: parent
         width: Math.min(parent.width - root.metrics.spacingMD * 2, 340)

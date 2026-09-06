@@ -142,6 +142,7 @@ FocusScope {
             root.forceActiveFocus();
             triageModel.refresh();
             initSelection();
+            if (root.needsOnboarding) onboardingView.focusInput();
         }
     }
 
