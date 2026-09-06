@@ -2,8 +2,10 @@
   "schemaVersion": 1,
   "id": "denial.beeper-relay",
   "name": "Relay",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "denial",
+  "license": "MIT",
+  "homepage": "https://github.com/denialbb/relay",
   "description": "Keyboard-first unread Beeper triage drawer.",
   "kinds": [
     "bar-widget"
@@ -15,6 +17,16 @@
     "displayName": "Relay",
     "description": "Beeper unread triage drawer",
     "category": "Communication",
+    "aliases": [
+      "beeper",
+      "chat",
+      "messages",
+      "matrix",
+      "whatsapp",
+      "telegram",
+      "triage",
+      "relay"
+    ],
     "allowMultiple": false,
     "defaultSection": "right"
   }

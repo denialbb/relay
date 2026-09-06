@@ -8,9 +8,9 @@ Relay provides a transient, lightweight desktop surface to triage incoming direc
 
 ---
 
-## Status & Release (v1.0.0)
+## Status & Release (v1.1.0)
 
-**v1.0.0 official release ready:**
+**v1.1.0 official release ready:**
 - **Compact Surface**: Halved drawer height to a sleek 300px compact surface (`BarWidget.qml` dynamic height; `TriageDrawer.qml` implicitHeight: 300px with interactive `Ctrl+j`/`Ctrl+k` resizing between 220px and 700px).
 - **Fast Keyboard Triage**: Full keyboard navigation (`j`/`k`, `Enter`/`o`, `r`, `b`, `p`, `h`, `?`, `Esc`/`q`) with instant first-item selection on load.
 - **Unified Rounded Composer**: Shared compact `Composer.qml` for both in-chat and inline quick reply (`i`), featuring vertically centered text, rounded border radius, auto-expansion, `Enter` sending, and `Shift+Enter` newlines.
@@ -148,4 +148,5 @@ node tools/check-complexity.mjs
 - [Architecture & Data Flow (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)
 - [Keyboard Reference (`docs/KEYMAP.md`)](docs/KEYMAP.md)
 - [Security Audit & Hardening (`docs/SECURITY_AUDIT.md`)](docs/SECURITY_AUDIT.md)
+- [Marketplace Release Report (`docs/MARKETPLACE_RELEASE_REPORT.md`)](docs/MARKETPLACE_RELEASE_REPORT.md)
 - [Agent Guidelines (`AGENTS.md`)](AGENTS.md)

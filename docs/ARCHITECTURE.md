@@ -1,6 +1,6 @@
 # Relay — Technical Architecture
 
-This document describes the runtime design, separation of concerns, data flow, security architecture, and error taxonomy for the Relay Beeper triage drawer (`denial.beeper-relay`) v1.0.0.
+This document describes the runtime design, separation of concerns, data flow, security architecture, and error taxonomy for the Relay Beeper triage drawer (`denial.beeper-relay`) v1.1.0.
 
 ---
 
