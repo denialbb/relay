@@ -8,7 +8,7 @@ export function calculateCropGeometry(monitors, barWidgets, options = {}) {
 
   const monitor = monitors.find(m => m && m.focused) || monitors[0];
   const cardWidth = options.cardWidth || 400;
-  const cardHeight = options.cardHeight || 620;
+  const cardHeight = options.cardHeight || 310;
   const margin = options.margin || 5;
   const paddingX = options.paddingX || 20;
   const paddingY = options.paddingY || 30;

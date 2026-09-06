@@ -18,7 +18,7 @@ test('calculateCropGeometry returns correct geometry for focused monitor', () =>
   assert.ok(geom.geomString.startsWith('5')); // DP-1 is at 3840 + 1723 = ~5563
   assert.equal(geom.monitor.name, 'DP-1');
   assert.ok(geom.width >= 400);
-  assert.ok(geom.height >= 600);
+  assert.ok(geom.height >= 300);
 });
 
 test('calculateCropGeometry falls back to first monitor if none focused', () => {

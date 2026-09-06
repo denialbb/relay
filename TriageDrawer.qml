@@ -11,12 +11,13 @@ FocusScope {
 
     property bool open: false
     property int selectedIndex: -1
+    property bool helpExpanded: false
 
     signal requestClose()
     signal requestOpenInBeeper(string chatId)
 
     implicitWidth: 400
-    implicitHeight: 600
+    implicitHeight: 300
 
     focus: true
 
@@ -40,24 +41,56 @@ FocusScope {
     property bool quickReplyOpen: false
     property var quickReplyChat: null
     property var dismissedChatIds: ({})
+    property bool hidePinned: false
 
-    readonly property var visibleChats: getVisibleChats(triageModel.chats, root.dismissedChatIds)
+    readonly property bool needsOnboarding: beeperService.tokenLoaded && !beeperService.hasToken
+    readonly property var visibleChats: getVisibleChats(triageModel.chats, root.dismissedChatIds, root.hidePinned)
     readonly property bool inConversation: triageModel.activeChatId !== ""
-    readonly property bool hasError: triageModel.error !== ""
+    readonly property bool hasError: !needsOnboarding && (triageModel.error !== "")
     readonly property bool hasChats: Boolean(root.visibleChats && root.visibleChats.length > 0)
-    readonly property bool isInboxEmpty: !hasError && !hasChats
+    readonly property bool isInboxEmpty: !needsOnboarding && !hasError && !hasChats
     readonly property var currentChat: findChatById(triageModel.chats, triageModel.activeChatId)
 
-    function getVisibleChats(chats, dismissed) {
+    function getVisibleChats(chats, dismissed, hidePinned) {
         if (!chats) return [];
         var out = [];
         for (var i = 0; i < chats.length; i++) {
             var c = chats[i];
-            if (c && !dismissed[c.id]) {
-                out.push(c);
-            }
+            if (root.isChatVisible(c, dismissed, hidePinned)) out.push(c);
         }
         return out;
+    }
+
+    function isChatVisible(c, dismissed, hidePinned) {
+        if (!c) return false;
+        if (dismissed[c.id]) return false;
+        if (hidePinned && c.isPinned) return false;
+        return true;
+    }
+
+    function isChatPinned(chatId) {
+        var c = findChatById(triageModel.chats, chatId);
+        return Boolean(c && c.isPinned);
+    }
+
+    function togglePinCurrent() {
+        var id = root.resolveChatId("");
+        if (!id) return;
+        triageModel.togglePin(id);
+    }
+
+    function toggleHidePinned() {
+        root.hidePinned = !root.hidePinned;
+        root.clampSelectedIndex();
+    }
+
+    function handlePinKey(event) {
+        if (event.modifiers & Qt.ControlModifier) {
+            root.toggleHidePinned();
+        } else {
+            root.togglePinCurrent();
+        }
+        event.accepted = true;
     }
 
     function findChatById(list, id) {
@@ -100,6 +133,8 @@ FocusScope {
         var count = root.visibleChats ? root.visibleChats.length : 0;
         if (count === 0) {
             root.selectedIndex = -1;
+        } else if (root.selectedIndex < 0) {
+            root.selectedIndex = 0;
         } else if (root.selectedIndex >= count) {
             root.selectedIndex = count - 1;
         }
@@ -122,6 +157,8 @@ FocusScope {
     function activateCurrentChat() {
         var chat = getSelectedChat();
         if (chat) {
+            if (root.quickReplyOpen) root.closeQuickReply();
+            else root.releaseInputs();
             triageModel.selectChat(chat.id);
         }
     }
@@ -142,6 +179,7 @@ FocusScope {
             return;
         }
         if (triageModel.activeChatId !== "") {
+            root.releaseInputs();
             triageModel.closeChat();
         } else {
             root.requestClose();
@@ -153,7 +191,7 @@ FocusScope {
             triageModel.refresh();
         } else {
             var cid = root.resolveChatId("");
-            root.dismissChat(cid);
+            if (!root.isChatPinned(cid)) root.dismissChat(cid);
             triageModel.markActiveChatRead(cid);
         }
     }
@@ -194,10 +232,20 @@ FocusScope {
         if (!chat) return;
         root.quickReplyChat = chat;
         root.quickReplyOpen = true;
-        quickReplyInput.forceActiveFocus();
+        quickReplyEdit.forceActiveFocus();
+    }
+
+    function releaseInputs() {
+        quickReplyEdit.focus = false;
+        if (conversationView && typeof conversationView.blurComposer === "function") {
+            conversationView.blurComposer();
+        }
+        root.forceActiveFocus();
     }
 
     function closeQuickReply() {
+        quickReplyEdit.text = "";
+        quickReplyEdit.focus = false;
         root.quickReplyOpen = false;
         root.quickReplyChat = null;
         root.forceActiveFocus();
@@ -222,18 +270,16 @@ FocusScope {
         var t = (text || "").trim();
         if (t.length === 0) return;
         root.dispatchQuickReply(chat.id, t);
-        root.dismissChat(chat.id);
+        if (!root.isChatPinned(chat.id)) root.dismissChat(chat.id);
         root.closeQuickReply();
     }
 
     function handleQuickReplyKey(event) {
         if (event.key === Qt.Key_Escape) {
-            quickReplyInput.text = "";
             root.closeQuickReply();
             event.accepted = true;
-        } else if (root.isActivateKey(event.key)) {
-            var msg = quickReplyInput.text;
-            quickReplyInput.text = "";
+        } else if (root.isActivateKey(event.key) && !(event.modifiers & Qt.ShiftModifier)) {
+            var msg = quickReplyEdit.text;
             root.submitQuickReply(msg);
             event.accepted = true;
         }
@@ -257,6 +303,15 @@ FocusScope {
             event.accepted = true;
         } else if (event.key === Qt.Key_R) {
             root.handleReadOrRefresh(event);
+            event.accepted = true;
+        } else if (event.key === Qt.Key_P) {
+            root.handlePinKey(event);
+            event.accepted = true;
+        } else if (event.key === Qt.Key_H) {
+            root.toggleHidePinned();
+            event.accepted = true;
+        } else if (event.key === Qt.Key_Question || event.text === "?") {
+            root.helpExpanded = !root.helpExpanded;
             event.accepted = true;
         }
     }
@@ -324,6 +379,13 @@ FocusScope {
     }
 
     function routeKey(event) {
+        if (root.needsOnboarding) {
+            if (event.key === Qt.Key_Escape) {
+                root.handleEscape();
+                event.accepted = true;
+            }
+            return;
+        }
         if (root.quickReplyOpen) {
             if (event.key === Qt.Key_Escape) {
                 root.closeQuickReply();
@@ -333,7 +395,7 @@ FocusScope {
         }
         if (root.inConversation && conversationView.isComposerFocused) {
             if (event.key === Qt.Key_Escape) {
-                root.forceActiveFocus();
+                root.releaseInputs();
                 event.accepted = true;
             }
             return;
@@ -378,8 +440,9 @@ FocusScope {
                 visible: !root.inConversation
 
                 Text {
-                    text: "Relay"
+                    text: root.hidePinned ? "Relay · pins hidden" : "Relay"
                     color: theme.textPrimary
+                    font.family: theme.fontFamily
                     font.pixelSize: 15
                     font.bold: true
                     Layout.alignment: Qt.AlignVCenter
@@ -402,6 +465,7 @@ FocusScope {
                         anchors.centerIn: parent
                         text: String(triageModel.unreadTotal)
                         color: theme.background
+                        font.family: theme.fontFamily
                         font.pixelSize: 11
                         font.bold: true
                     }
@@ -420,6 +484,7 @@ FocusScope {
                     implicitWidth: backRow.implicitWidth
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
+                        root.releaseInputs();
                         triageModel.closeChat();
                     }
 
@@ -437,6 +502,7 @@ FocusScope {
                         Text {
                             text: root.currentChat && root.currentChat.title ? root.currentChat.title : "Chat"
                             color: theme.textPrimary
+                            font.family: theme.fontFamily
                             font.pixelSize: 13
                             font.bold: true
                             elide: Text.ElideRight
@@ -455,7 +521,8 @@ FocusScope {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         var cid = triageModel.activeChatId;
-                        root.dismissChat(cid);
+                        root.releaseInputs();
+                        if (!root.isChatPinned(cid)) root.dismissChat(cid);
                         triageModel.markActiveChatRead(cid);
                     }
 
@@ -464,6 +531,7 @@ FocusScope {
                         anchors.centerIn: parent
                         text: "Mark read"
                         color: theme.accent
+                        font.family: theme.fontFamily
                         font.pixelSize: 12
                     }
                 }
@@ -481,6 +549,7 @@ FocusScope {
                         anchors.centerIn: parent
                         text: "Beeper ↗"
                         color: theme.accent
+                        font.family: theme.fontFamily
                         font.pixelSize: 12
                     }
                 }
@@ -502,6 +571,15 @@ FocusScope {
                 anchors.fill: parent
                 visible: !root.inConversation
 
+                OnboardingView {
+                    id: onboardingView
+                    anchors.fill: parent
+                    visible: root.needsOnboarding
+                    onSaveToken: function(tok) {
+                        beeperService.saveToken(tok);
+                    }
+                }
+
                 ErrorState {
                     id: errorState
                     anchors.fill: parent
@@ -522,7 +600,7 @@ FocusScope {
                 ChatList {
                     id: chatList
                     anchors.fill: parent
-                    visible: !root.hasError && root.hasChats
+                    visible: !root.needsOnboarding && !root.hasError && root.hasChats
                     chats: root.visibleChats
                     selectedIndex: root.selectedIndex
                     onChatActivated: function(index) {
@@ -539,9 +617,11 @@ FocusScope {
                 visible: root.inConversation
                 chat: root.currentChat
                 messages: triageModel.activeMessages
+                busy: triageModel.sending
                 onRequestMarkRead: {
                     var cid = triageModel.activeChatId;
-                    root.dismissChat(cid);
+                    root.releaseInputs();
+                    if (!root.isChatPinned(cid)) root.dismissChat(cid);
                     triageModel.markActiveChatRead(cid);
                 }
                 onRequestOpenInBeeper: {
@@ -549,6 +629,8 @@ FocusScope {
                 }
                 onSubmitReply: function(text) {
                     triageModel.submitReply(text);
+                    conversationView.scrollToBottom();
+                    root.releaseInputs();
                 }
             }
         }
@@ -559,7 +641,7 @@ FocusScope {
             anchors.bottom: footerBar.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 44
+            height: Math.min(100, Math.max(38, quickReplyEdit.implicitHeight + 16))
             visible: root.quickReplyOpen && !root.inConversation
             color: theme.surfaceRaised
             border.color: theme.border
@@ -569,93 +651,159 @@ FocusScope {
                 anchors.fill: parent
                 anchors.leftMargin: metrics.spacingMD
                 anchors.rightMargin: metrics.spacingMD
+                anchors.topMargin: metrics.spacingXS
+                anchors.bottomMargin: metrics.spacingXS
                 spacing: metrics.spacingSM
 
                 Text {
                     text: root.quickReplyChat ? (root.quickReplyChat.title + ":") : ""
                     color: theme.accent
+                    font.family: theme.fontFamily
                     font.pixelSize: 12
                     font.bold: true
                     elide: Text.ElideRight
                     Layout.maximumWidth: 100
+                    Layout.alignment: Qt.AlignTop
                 }
 
-                TextInput {
-                    id: quickReplyInput
+                Item {
                     Layout.fillWidth: true
-                    color: theme.textPrimary
-                    font.pixelSize: 13
-                    clip: true
-                    selectByMouse: true
+                    Layout.fillHeight: true
 
                     Text {
                         anchors.fill: parent
-                        visible: parent.text.length === 0
+                        visible: quickReplyEdit.text.length === 0
                         text: "Reply… (Enter to send, Esc to cancel)"
                         color: theme.textSecondary
+                        font.family: theme.fontFamily
                         font.pixelSize: 13
                     }
 
-                    Keys.onPressed: function(event) {
-                        root.handleQuickReplyKey(event);
+                    TextEdit {
+                        id: quickReplyEdit
+                        anchors.fill: parent
+                        color: theme.textPrimary
+                        font.family: theme.fontFamily
+                        font.pixelSize: 13
+                        wrapMode: TextEdit.Wrap
+                        selectByMouse: true
+
+                        Keys.onPressed: function(event) {
+                            root.handleQuickReplyKey(event);
+                        }
                     }
                 }
             }
         }
 
         // Footer Bar (Key hints)
-        Rectangle {
+        Item {
             id: footerBar
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 36
-            color: theme.surface
-            border.color: theme.border
-            border.width: 1
+            anchors.leftMargin: metrics.spacingMD
+            anchors.rightMargin: metrics.spacingMD
+            height: root.helpExpanded ? Math.max(24, footerText.implicitHeight + 4) : 24
 
-            KeyHints {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                anchors.leftMargin: metrics.spacingMD
-                hints: root.activeHints
-                textColor: theme.textPrimary
-                dimColor: theme.textSecondary
-                badgeColor: theme.surfaceRaised
-                badgeRadius: metrics.radiusSM
+            Text {
+                id: footerText
+                anchors.fill: parent
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: root.helpExpanded ? Text.AlignTop : Text.AlignVCenter
+                text: root.formattedHints
+                font.family: theme.fontFamily
+                font.pixelSize: 11
+                textFormat: Text.StyledText
+                wrapMode: root.helpExpanded ? Text.WordWrap : Text.NoWrap
+                elide: root.helpExpanded ? Text.None : Text.ElideRight
             }
         }
     }
 
-    function getHints() {
-        if (root.quickReplyOpen) {
-            return [
-                { key: "Enter", label: "send" },
-                { key: "Esc", label: "cancel" }
-            ];
+    readonly property string formattedHints: formatHints(root.activeHints)
+
+    function formatHints(hints) {
+        if (!hints || !hints.length) return "";
+        var kCol = theme.textSecondary;
+        var aCol = theme.textPrimary;
+        var parts = [];
+        for (var i = 0; i < hints.length; i++) {
+            var h = hints[i];
+            if (h) parts.push("<font color='" + kCol + "'>" + h.key + "</font> <font color='" + aCol + "'>" + h.label + "</font>");
         }
-        if (root.inConversation) {
+        return parts.join(" <font color='" + kCol + "'>·</font> ");
+    }
+
+    function getHints() {
+        if (root.needsOnboarding) return getOnboardingHints();
+        if (root.quickReplyOpen) return getQuickReplyHints();
+        if (root.inConversation) return getConversationHints();
+        if (root.hasError) return getErrorHints();
+        return getListHints();
+    }
+
+    function getOnboardingHints() {
+        return [
+            { key: "Enter", label: "save" },
+            { key: "Esc", label: "close" }
+        ];
+    }
+
+    function getQuickReplyHints() {
+        return [
+            { key: "Enter", label: "send" },
+            { key: "Esc", label: "cancel" }
+        ];
+    }
+
+    function getErrorHints() {
+        return [
+            { key: "r", label: "retry" },
+            { key: "q", label: "close" }
+        ];
+    }
+
+    function getConversationHints() {
+        if (!root.helpExpanded) {
             return [
                 { key: "j/k", label: "scroll" },
-                { key: "i", label: "reply" },
                 { key: "r", label: "read" },
-                { key: "b", label: "beeper" },
-                { key: "q", label: "back" }
+                { key: "i", label: "reply" },
+                { key: "?", label: "more" }
             ];
         }
-        if (root.hasError) {
+        return [
+            { key: "j/k", label: "scroll" },
+            { key: "i", label: "reply" },
+            { key: "p", label: "pin" },
+            { key: "r", label: "read" },
+            { key: "b", label: "beeper" },
+            { key: "q", label: "back" },
+            { key: "?", label: "less" }
+        ];
+    }
+
+    function getListHints() {
+        if (!root.helpExpanded) {
             return [
-                { key: "r", label: "retry" },
-                { key: "q", label: "close" }
+                { key: "j/k", label: "nav" },
+                { key: "o", label: "open" },
+                { key: "r", label: "read" },
+                { key: "i", label: "reply" },
+                { key: "?", label: "more" }
             ];
         }
         return [
             { key: "j/k", label: "nav" },
             { key: "o", label: "open" },
             { key: "i", label: "reply" },
+            { key: "p", label: "pin" },
+            { key: "h", label: root.hidePinned ? "show pinned" : "hide pinned" },
             { key: "r", label: "read" },
             { key: "b", label: "beeper" },
-            { key: "q", label: "close" }
+            { key: "q", label: "close" },
+            { key: "?", label: "less" }
         ];
     }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execSync as exec, spawnSync as spawn } from 'node:child_process';
+import { execFileSync, spawnSync as spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { calculateCropGeometry } from './drive-geometry.mjs';
@@ -7,20 +7,20 @@ import { calculateCropGeometry } from './drive-geometry.mjs';
 const PLUGIN_ID = 'denial.beeper-relay';
 const BEEPER_URL = process.env.BEEPER_URL || 'http://127.0.0.1:23373';
 
-function run(cmd, opts = {}) {
-  return exec(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], ...opts }).trim();
+function run(bin, args = [], opts = {}) {
+  return execFileSync(bin, args, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], ...opts }).trim();
 }
 
-function tryRun(cmd) {
+function tryRun(bin, args = []) {
   try {
-    return run(cmd);
+    return run(bin, args);
   } catch (err) {
     return null;
   }
 }
 
 export function getStatus() {
-  const pluginsRaw = tryRun('omarchy plugin list --json');
+  const pluginsRaw = tryRun('omarchy', ['plugin', 'list', '--json']);
   let plugin = null;
   if (pluginsRaw) {
     try {
@@ -29,7 +29,7 @@ export function getStatus() {
     } catch {}
   }
 
-  const geomRaw = tryRun('omarchy-shell shell debugBarGeometry');
+  const geomRaw = tryRun('omarchy-shell', ['shell', 'debugBarGeometry']);
   let widget = null;
   if (geomRaw) {
     try {
@@ -39,55 +39,54 @@ export function getStatus() {
   }
 
   return {
-    pluginId: PLUGIN_ID,
-    installed: !!plugin,
-    enabled: plugin ? plugin.enabled : false,
-    inBar: !!widget,
-    barWidget: widget
+    pluginInstalled: !!plugin,
+    pluginEnabled: plugin ? plugin.enabled : false,
+    barWidgetPlaced: !!widget,
+    widgetGeometry: widget
   };
 }
 
 export function locateGeometry(options = {}) {
-  const monitorsRaw = tryRun('hyprctl monitors -j');
-  const barGeomRaw = tryRun('omarchy-shell shell debugBarGeometry');
+  const monitorsRaw = tryRun('hyprctl', ['monitors', '-j']);
+  const barGeomRaw = tryRun('omarchy-shell', ['shell', 'debugBarGeometry']);
   if (!monitorsRaw || !barGeomRaw) return null;
 
   try {
     const monitors = JSON.parse(monitorsRaw);
-    const barWidgets = JSON.parse(barGeomRaw);
-    return calculateCropGeometry(monitors, barWidgets, { widgetId: PLUGIN_ID, ...options });
-  } catch (e) {
+    const barGeom = JSON.parse(barGeomRaw);
+    return calculateCropGeometry(monitors, barGeom, { widgetId: PLUGIN_ID, ...options });
+  } catch (err) {
     return null;
   }
 }
 
 export function openRelay() {
-  run(`omarchy-shell shell summon ${PLUGIN_ID}`);
+  run('omarchy-shell', ['shell', 'summon', PLUGIN_ID]);
 }
 
 export function closeRelay() {
-  run(`omarchy-shell shell hide ${PLUGIN_ID}`);
+  run('omarchy-shell', ['shell', 'hide', PLUGIN_ID]);
 }
 
 export function toggleRelay() {
-  run(`omarchy-shell shell toggle ${PLUGIN_ID}`);
+  run('omarchy-shell', ['shell', 'toggle', PLUGIN_ID]);
 }
 
 export function captureScreenshot(outFile, options = {}) {
   const geom = locateGeometry(options);
   if (!geom) throw new Error('Could not calculate crop geometry for ' + PLUGIN_ID);
-  run(`grim -g "${geom.geomString}" "${outFile}"`);
+  run('grim', ['-g', geom.geomString, outFile]);
   return { outFile, geom };
 }
 
 export function ocrScreenshot(imagePath) {
   if (!existsSync(imagePath)) throw new Error('Image not found: ' + imagePath);
-  return tryRun(`tesseract "${imagePath}" stdout --oem 1 --psm 6 2>/dev/null`) || '';
+  return tryRun('tesseract', [imagePath, 'stdout', '--oem', '1', '--psm', '6']) || '';
 }
 
 function fileHash(path) {
   if (!existsSync(path)) return '';
-  return run(`sha256sum "${path}"`).split(/\s+/)[0];
+  return run('sha256sum', [path]).split(/\s+/)[0];
 }
 
 export async function preflight() {
@@ -95,7 +94,7 @@ export async function preflight() {
 
   // 1. make check
   try {
-    run('make check');
+    run('make', ['check']);
     results.makeCheck = true;
   } catch (e) {
     results.errors.push('make check failed: ' + (e.stderr || e.message));
