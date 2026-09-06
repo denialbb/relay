@@ -28,6 +28,14 @@ function isChatEligible(c) {
   return hasUnread(c);
 }
 
+function extractItems(data, key) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.items)) return data.items;
+  if (key && Array.isArray(data[key])) return data[key];
+  return [];
+}
+
 function filterEligibleChats(chats) {
   if (!Array.isArray(chats)) return [];
   return chats.filter(isChatEligible);
@@ -52,9 +60,10 @@ function classifyMessage(message) {
   return "text";
 }
 
-function getPreview(preview) {
-  if (!preview) return null;
-  return normalizeMessage(preview);
+function getPreview(preview, existingChat) {
+  if (preview) return normalizeMessage(preview);
+  if (existingChat && existingChat.preview) return existingChat.preview;
+  return null;
 }
 
 function getChatUnread(count) {
@@ -70,7 +79,7 @@ function extractChatStrings(c) {
   return out;
 }
 
-function normalizeChat(chat) {
+function normalizeChat(chat, existingChat) {
   if (!chat) return null;
   const c = chat;
   const s = extractChatStrings(c);
@@ -83,7 +92,7 @@ function normalizeChat(chat) {
     avatarUrl: c.avatarUrl || null,
     unreadCount: getChatUnread(c.unreadCount),
     lastActivity: c.lastActivity || null,
-    preview: getPreview(c.preview),
+    preview: getPreview(c.preview, existingChat),
     messagesLoaded: Boolean(c.messagesLoaded),
     isReadOnly: Boolean(c.isReadOnly),
     isMuted: Boolean(c.isMuted),

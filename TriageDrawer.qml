@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import "components"
+import "components/KeyHintsHelper.js" as HintsHelper
 import "models"
 import "services"
 import "theme"
@@ -761,7 +762,7 @@ FocusScope {
                 font.pixelSize: 11
                 textFormat: Text.StyledText
                 wrapMode: root.helpExpanded ? Text.WordWrap : Text.NoWrap
-                elide: root.helpExpanded ? Text.None : Text.ElideRight
+                elide: root.helpExpanded ? Text.ElideNone : Text.ElideRight
             }
         }
     }
@@ -769,15 +770,7 @@ FocusScope {
     readonly property string formattedHints: formatHints(root.activeHints)
 
     function formatHints(hints) {
-        if (!hints || !hints.length) return "";
-        var kCol = theme.textSecondary;
-        var aCol = theme.textPrimary;
-        var parts = [];
-        for (var i = 0; i < hints.length; i++) {
-            var h = hints[i];
-            if (h) parts.push("<font color='" + kCol + "'>" + h.key + "</font> <font color='" + aCol + "'>" + h.label + "</font>");
-        }
-        return parts.join(" <font color='" + kCol + "'>·</font> ");
+        return HintsHelper.formatHints(hints, root.helpExpanded, theme.textSecondary, theme.textPrimary);
     }
 
     function getHints() {

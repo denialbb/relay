@@ -112,11 +112,7 @@ Item {
     // so transport lives here; response-shape normalization is canonical in
     // BeeperApi.extractItems and mirrored below in itemsOf().
     function itemsOf(data, key) {
-        if (data instanceof Array) return data;
-        if (!data) return [];
-        if (data.items instanceof Array) return data.items;
-        if (data[key] instanceof Array) return data[key];
-        return [];
+        return TM.extractItems(data, key);
     }
 
     FileView {
@@ -328,7 +324,7 @@ Item {
             root.appendVaultIfMatch(list, item);
             return;
         }
-        var norm = TM.normalizeChat(item);
+        var norm = TM.normalizeChat(item, root.findChat(item.id));
         if (root.localPins[item.id]) norm.isPinned = true;
         list.push(norm);
     }

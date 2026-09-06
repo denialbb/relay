@@ -68,6 +68,17 @@ describe("ChatRowHelper", () => {
     assert.equal(out.length, 90);
     assert.ok(out.endsWith("..."));
   });
+
+  it("formatSnippet extracts first line only for multiline messages", () => {
+    const chat = {
+      type: "single",
+      preview: {
+        kind: "text",
+        text: "<strong>Agent Done: Relay</strong><br><br>[Gemini 3.8 Flash] Released Relay v1.0.0.",
+      },
+    };
+    assert.equal(chatRowHelper.formatSnippet(chat), "Agent Done: Relay");
+  });
 });
 
 describe("ErrorStateHelper", () => {
