@@ -13,9 +13,14 @@ Item {
 
     implicitWidth: 360
     implicitHeight: 380
+    enabled: visible
 
     onVisibleChanged: {
-        if (visible) root.focusInput()
+        if (visible) {
+            root.focusInput();
+        } else {
+            tokenInput.focus = false;
+        }
     }
 
     ColumnLayout {
@@ -109,6 +114,12 @@ Item {
             border.color: tokenInput.activeFocus ? root.theme.accent : root.theme.border
             border.width: 1
 
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.IBeamCursor
+                onClicked: tokenInput.forceActiveFocus()
+            }
+
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: root.metrics.spacingSM
@@ -136,7 +147,7 @@ Item {
                     }
 
                     Keys.onPressed: function(event) {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.text === "\r" || event.text === "\n") {
                             root.submit();
                             event.accepted = true;
                         }
@@ -204,11 +215,11 @@ Item {
 
     function submit() {
         var val = tokenInput.text.trim();
-        if (val.length === 0) return;
+        if (val.length < 10) return;
         root.saveToken(val);
     }
 
     function focusInput() {
-        tokenInput.forceActiveFocus();
+        if (root.visible) tokenInput.forceActiveFocus();
     }
 }

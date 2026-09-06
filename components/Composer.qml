@@ -181,19 +181,28 @@ Item {
     }
 
     function isSubmitCombo(event) {
-        var isEnter = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+        var isEnter = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.text === "\r" || event.text === "\n")
         var isShift = (event.modifiers & Qt.ShiftModifier) !== 0
         return isEnter && !isShift
     }
 
+    function isResizeGrow(event) {
+        var k = event.key
+        return k === Qt.Key_J || k === Qt.Key_Down || event.text === "j"
+    }
+
+    function isResizeShrink(event) {
+        var k = event.key
+        return k === Qt.Key_K || k === Qt.Key_Up || event.text === "k"
+    }
+
     function handleResizeKeys(event) {
-        var isCtrl = (event.modifiers & Qt.ControlModifier) !== 0
-        if (!isCtrl) return false
-        if (event.key === Qt.Key_J || event.key === Qt.Key_Down) {
+        if (!(event.modifiers & Qt.ControlModifier)) return false
+        if (root.isResizeGrow(event)) {
             root.growHeightRequested()
             return true
         }
-        if (event.key === Qt.Key_K || event.key === Qt.Key_Up) {
+        if (root.isResizeShrink(event)) {
             root.shrinkHeightRequested()
             return true
         }

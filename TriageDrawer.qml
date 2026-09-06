@@ -57,6 +57,9 @@ FocusScope {
     property bool hidePinned: false
 
     readonly property bool needsOnboarding: beeperService.tokenLoaded && !beeperService.hasToken
+    onNeedsOnboardingChanged: {
+        if (!needsOnboarding) root.forceActiveFocus();
+    }
     readonly property var visibleChats: getVisibleChats(triageModel.chats, root.dismissedChatIds, root.hidePinned)
     readonly property bool inConversation: triageModel.activeChatId !== ""
     readonly property bool hasError: !needsOnboarding && (triageModel.error !== "")
@@ -298,67 +301,86 @@ FocusScope {
         root.closeQuickReply();
     }
 
-    function isQuitKey(key) {
-        return key === Qt.Key_Escape || key === Qt.Key_Q;
+    function isQuitKey(event) {
+        if (!event) return false;
+        var k = event.key;
+        var t = event.text || "";
+        return k === Qt.Key_Escape || k === Qt.Key_Q || t === "q" || t === "Q";
     }
 
-    function isActivateKey(key) {
-        return key === Qt.Key_Return || key === Qt.Key_Enter;
+    function isActivateKey(event) {
+        if (!event) return false;
+        var k = event.key;
+        var t = event.text || "";
+        return k === Qt.Key_Return || k === Qt.Key_Enter || t === "\r" || t === "\n";
     }
 
-    function isListOpenKey(key) {
-        return key === Qt.Key_O || root.isActivateKey(key);
+    function isListOpenKey(event) {
+        if (!event) return false;
+        var k = event.key;
+        var t = event.text || "";
+        return k === Qt.Key_O || t === "o" || t === "O" || root.isActivateKey(event);
     }
 
     function routeCommonKey(event) {
-        if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_J || event.key === Qt.Key_Down)) {
+        var k = event.key;
+        var t = event.text || "";
+        if ((event.modifiers & Qt.ControlModifier) && (k === Qt.Key_J || k === Qt.Key_Down || t === "j" || t === "J")) {
             root.growHeight();
             event.accepted = true;
-        } else if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_K || event.key === Qt.Key_Up)) {
+        } else if ((event.modifiers & Qt.ControlModifier) && (k === Qt.Key_K || k === Qt.Key_Up || t === "k" || t === "K")) {
             root.shrinkHeight();
             event.accepted = true;
-        } else if (root.isQuitKey(event.key)) {
+        } else if (root.isQuitKey(event)) {
             root.handleEscape();
             event.accepted = true;
-        } else if (event.key === Qt.Key_R) {
+        } else if (k === Qt.Key_R || t === "r" || t === "R") {
             root.handleReadOrRefresh(event);
             event.accepted = true;
-        } else if (event.key === Qt.Key_P) {
+        } else if (k === Qt.Key_P || t === "p" || t === "P") {
             root.handlePinKey(event);
             event.accepted = true;
-        } else if (event.key === Qt.Key_H) {
+        } else if (k === Qt.Key_H || t === "h" || t === "H") {
             root.toggleHidePinned();
             event.accepted = true;
-        } else if (event.key === Qt.Key_Question || event.text === "?") {
+        } else if (k === Qt.Key_Question || t === "?") {
             root.helpExpanded = !root.helpExpanded;
             event.accepted = true;
         }
     }
 
-    function isNavDown(key) {
-        return key === Qt.Key_J || key === Qt.Key_Down;
+    function isNavDown(event) {
+        if (!event) return false;
+        var k = event.key;
+        var t = event.text || "";
+        return k === Qt.Key_Down || k === Qt.Key_J || t === "j" || t === "J";
     }
 
-    function isNavUp(key) {
-        return key === Qt.Key_K || key === Qt.Key_Up;
+    function isNavUp(event) {
+        if (!event) return false;
+        var k = event.key;
+        var t = event.text || "";
+        return k === Qt.Key_Up || k === Qt.Key_K || t === "k" || t === "K";
     }
 
     function handleListNav(event) {
-        if (isNavDown(event.key)) {
+        if (isNavDown(event)) {
             navigateChat(1);
             event.accepted = true;
-        } else if (isNavUp(event.key)) {
+        } else if (isNavUp(event)) {
             navigateChat(-1);
             event.accepted = true;
         }
     }
 
     function handleListAction(event) {
-        if (event.key === Qt.Key_B) {
+        var k = event.key;
+        var t = event.text || "";
+        if (k === Qt.Key_B || t === "b" || t === "B") {
             var chat = root.getSelectedChat();
             root.openInBeeper(chat ? chat.id : "");
             event.accepted = true;
-        } else if (event.key === Qt.Key_I) {
+        } else if (k === Qt.Key_I || t === "i" || t === "I") {
             root.openQuickReply();
             event.accepted = true;
         }
@@ -367,7 +389,7 @@ FocusScope {
     function routeListKey(event) {
         root.handleListNav(event);
         if (event.accepted) return;
-        if (root.isListOpenKey(event.key)) {
+        if (root.isListOpenKey(event)) {
             root.activateCurrentChat();
             event.accepted = true;
             return;
@@ -376,10 +398,10 @@ FocusScope {
     }
 
     function handleConvNav(event) {
-        if (root.isNavDown(event.key)) {
+        if (root.isNavDown(event)) {
             conversationView.scrollDown();
             event.accepted = true;
-        } else if (root.isNavUp(event.key)) {
+        } else if (root.isNavUp(event)) {
             conversationView.scrollUp();
             event.accepted = true;
         }
@@ -388,10 +410,12 @@ FocusScope {
     function routeConvKey(event) {
         root.handleConvNav(event);
         if (event.accepted) return;
-        if (event.key === Qt.Key_I || event.key === Qt.Key_C) {
+        var k = event.key;
+        var t = event.text || "";
+        if (k === Qt.Key_I || k === Qt.Key_C || t === "i" || t === "c" || t === "I" || t === "C") {
             root.focusComposer();
             event.accepted = true;
-        } else if (event.key === Qt.Key_B) {
+        } else if (k === Qt.Key_B || t === "b" || t === "B") {
             root.openInBeeper(triageModel.activeChatId);
             event.accepted = true;
         }
@@ -439,6 +463,7 @@ FocusScope {
         }
     }
 
+    Keys.priority: Keys.BeforeItem
     Keys.onPressed: function(event) {
         routeKey(event);
     }

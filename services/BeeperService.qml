@@ -30,8 +30,8 @@ Item {
             id: tokenOut
             waitForEnd: true
             onStreamFinished: {
-                root.tokenLoaded = true;
                 root.handleTokenLoaded(tokenOut.text);
+                root.tokenLoaded = true;
             }
         }
     }
@@ -62,9 +62,8 @@ Item {
 
     function handleTokenLoaded(raw) {
         var token = (raw || "").trim();
-        if (token === "") return;
         root.authToken = token;
-        if (root.status === "error") {
+        if (root.status === "error" && token !== "") {
             root.refreshUnread();
         }
     }
