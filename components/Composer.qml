@@ -58,7 +58,7 @@ Item {
                     text: "Reply…"
                     color: root.theme.textSecondary
                     font.family: root.theme.fontFamily
-                    font.pixelSize: 13
+                    font.pixelSize: 12
                 }
 
                 TextEdit {
@@ -70,7 +70,7 @@ Item {
                     readOnly: root.inputReadOnly
                     wrapMode: TextEdit.Wrap
                     font.family: root.theme.fontFamily
-                    font.pixelSize: 13
+                    font.pixelSize: 12
                     selectByMouse: true
 
                     Keys.onPressed: function(event) {

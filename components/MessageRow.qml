@@ -74,7 +74,7 @@ Item {
                         text: root.message ? (root.message.senderName || (root.isMine ? "You" : "")) : ""
                         color: root.isMine ? root.theme.accent : root.theme.textPrimary
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 12
+                        font.pixelSize: 11
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
                         Layout.fillWidth: true
@@ -84,7 +84,7 @@ Item {
                         text: root.formatTime(root.message ? root.message.timestamp : null)
                         color: root.theme.textSecondary
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                     }
                 }
 
@@ -94,7 +94,7 @@ Item {
                     text: root.message ? (root.message.text || "") : ""
                     color: root.theme.textPrimary
                     font.family: root.theme.fontFamily
-                    font.pixelSize: 13
+                    font.pixelSize: 12
                     font.italic: root.isPending
                     wrapMode: Text.Wrap
                     Layout.fillWidth: true
@@ -125,7 +125,7 @@ Item {
                         text: root.statusText
                         color: root.statusColor
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         font.italic: root.isPending
                     }
                 }

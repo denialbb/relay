@@ -659,7 +659,7 @@ FocusScope {
                     text: root.quickReplyChat ? (root.quickReplyChat.title + ":") : ""
                     color: theme.accent
                     font.family: theme.fontFamily
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                     font.bold: true
                     elide: Text.ElideRight
                     Layout.maximumWidth: 100
@@ -676,7 +676,7 @@ FocusScope {
                         text: "Reply… (Enter to send, Esc to cancel)"
                         color: theme.textSecondary
                         font.family: theme.fontFamily
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                     }
 
                     TextEdit {
@@ -684,7 +684,7 @@ FocusScope {
                         anchors.fill: parent
                         color: theme.textPrimary
                         font.family: theme.fontFamily
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         wrapMode: TextEdit.Wrap
                         selectByMouse: true
 

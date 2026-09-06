@@ -84,7 +84,7 @@ Rectangle {
                 color: root.theme.textPrimary
                 font.family: root.theme.fontFamily
                 font.bold: true
-                font.pixelSize: 13
+                font.pixelSize: 12
             }
         }
 
@@ -107,7 +107,7 @@ Rectangle {
                     font.bold: true
                     font.family: root.theme.fontFamily
                     color: root.theme.textPrimary
-                    font.pixelSize: 13
+                    font.pixelSize: 12
                     elide: Text.ElideRight
                     textFormat: Text.PlainText
                 }
@@ -124,7 +124,7 @@ Rectangle {
                         text: Helper.formatTimestamp(root.chatLastActivity)
                         color: root.theme.textSecondary
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         textFormat: Text.PlainText
                     }
 
@@ -135,7 +135,7 @@ Rectangle {
                         text: "\uf08d"
                         color: root.theme.textSecondary
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         textFormat: Text.PlainText
                     }
                 }
@@ -147,7 +147,7 @@ Rectangle {
                 text: Helper.formatSnippet(root.chat)
                 color: root.theme.textSecondary
                 font.family: root.theme.fontFamily
-                font.pixelSize: 12
+                font.pixelSize: 11
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 textFormat: Text.PlainText
