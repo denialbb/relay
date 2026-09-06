@@ -112,7 +112,17 @@ async function main() {
   console.log('Step 7: Closing drawer...');
   await sleep(1500);
   run('omarchy-shell', ['shell', 'hide', 'denial.beeper-relay']);
-  console.log('Test completed successfully!');
+
+  console.log('Step 8: Restarting shell to ensure clean production state...');
+  run('/usr/share/omarchy/bin/omarchy-restart-shell');
+  await sleep(1500);
+
+  console.log('Final verification: Confirming token file integrity...');
+  const finalToken = readFileSync(tokenFile, 'utf8').trim();
+  if (finalToken !== tokenValue) {
+    throw new Error('Final token verification failed! Does not match backup.');
+  }
+  console.log('Test completed successfully and verified clean!');
 }
 
 main().catch(err => {
