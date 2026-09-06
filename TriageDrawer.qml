@@ -707,8 +707,8 @@ FocusScope {
                 anchors.fill: parent
                 prefixText: root.quickReplyChat ? (root.quickReplyChat.title + ":") : ""
                 placeholderText: "Reply…"
-                theme: root.theme
-                metrics: root.metrics
+                theme: theme
+                metrics: metrics
                 onSubmit: function(text) {
                     root.submitQuickReply(text);
                 }
