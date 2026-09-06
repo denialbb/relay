@@ -19,34 +19,35 @@ Item {
     readonly property color inputTextColor: root.enabled ? root.theme.textPrimary : root.theme.textDisabled
     readonly property bool inputReadOnly: !root.enabled || root.busy
     readonly property color hintTextColor: root.canSubmit ? root.theme.textSecondary : root.theme.textDisabled
-    readonly property color buttonBgColor: root.canSubmit ? (sendMouseArea.containsMouse ? root.theme.accent : root.theme.surface) : root.theme.surface
-    readonly property color buttonBorderColor: root.canSubmit ? root.theme.accent : root.theme.border
-    readonly property color buttonTextColor: root.canSubmit ? (sendMouseArea.containsMouse ? root.theme.background : root.theme.textPrimary) : root.theme.textDisabled
+    readonly property color buttonTextColor: root.canSubmit ? (sendMouseArea.containsMouse ? root.theme.accent : root.theme.textPrimary) : root.theme.textDisabled
     readonly property int buttonCursor: root.canSubmit ? Qt.PointingHandCursor : Qt.ArrowCursor
 
     implicitWidth: 360
-    implicitHeight: Math.max(root.metrics.barHeight, container.implicitHeight)
+    implicitHeight: Math.max(28, container.implicitHeight)
     width: parent ? parent.width : implicitWidth
 
     Rectangle {
         id: container
         anchors.fill: parent
-        implicitHeight: contentRow.implicitHeight + (root.metrics.spacingSM * 2)
+        implicitHeight: contentRow.implicitHeight + (root.metrics.spacingXS * 2)
         color: root.theme.surfaceRaised
         border.color: root.borderColor
         border.width: 1
-        radius: root.metrics.radiusMD
+        radius: root.metrics.radiusSM
 
         RowLayout {
             id: contentRow
             anchors.fill: parent
-            anchors.margins: root.metrics.spacingSM
+            anchors.leftMargin: root.metrics.spacingSM
+            anchors.rightMargin: root.metrics.spacingSM
+            anchors.topMargin: root.metrics.spacingXS
+            anchors.bottomMargin: root.metrics.spacingXS
             spacing: root.metrics.spacingSM
 
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                implicitHeight: Math.max(24, textEdit.implicitHeight)
+                implicitHeight: Math.max(20, textEdit.implicitHeight)
 
                 Text {
                     id: placeholder
@@ -56,6 +57,7 @@ Item {
                     visible: textEdit.text.length === 0
                     text: "Reply…"
                     color: root.theme.textSecondary
+                    font.family: root.theme.fontFamily
                     font.pixelSize: 13
                 }
 
@@ -67,6 +69,7 @@ Item {
                     color: root.inputTextColor
                     readOnly: root.inputReadOnly
                     wrapMode: TextEdit.Wrap
+                    font.family: root.theme.fontFamily
                     font.pixelSize: 13
                     selectByMouse: true
 
@@ -80,7 +83,7 @@ Item {
             Item {
                 Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 implicitWidth: root.busy ? 18 : actionRow.implicitWidth
-                implicitHeight: 24
+                implicitHeight: 20
 
                 // Busy spinner
                 Item {
@@ -118,21 +121,19 @@ Item {
                     Text {
                         text: "Enter"
                         color: root.hintTextColor
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 11
                     }
 
-                    Rectangle {
-                        width: 24
-                        height: 24
-                        radius: root.metrics.radiusSM
-                        color: root.buttonBgColor
-                        border.color: root.buttonBorderColor
-                        border.width: 1
+                    Item {
+                        width: 20
+                        height: 20
 
                         Text {
                             anchors.centerIn: parent
                             text: "↑"
                             font.bold: true
+                            font.family: root.theme.fontFamily
                             font.pixelSize: 13
                             color: root.buttonTextColor
                         }
@@ -157,6 +158,10 @@ Item {
         textEdit.forceActiveFocus()
     }
 
+    function blur() {
+        textEdit.focus = false
+    }
+
     function isSubmitCombo(event) {
         var isEnter = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
         var isShift = (event.modifiers & Qt.ShiftModifier) !== 0
@@ -166,7 +171,7 @@ Item {
     function handleKeyPress(event) {
         if (!event) return
         if (event.key === Qt.Key_Escape) {
-            textEdit.focus = false
+            root.blur()
             event.accepted = true
             return
         }

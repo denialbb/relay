@@ -34,6 +34,7 @@ Item {
             Text {
                 text: "Unsupported in Relay · Open in Beeper ↗"
                 color: mouseArea.containsMouse ? root.theme.accent : root.theme.textSecondary
+                font.family: root.theme.fontFamily
                 font.pixelSize: 13
                 font.weight: Font.Medium
             }

@@ -31,6 +31,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "!"
+                font.family: root.theme.fontFamily
                 font.bold: true
                 font.pixelSize: 22
                 color: root.theme.error
@@ -41,6 +42,7 @@ Item {
             width: parent.width
             text: "Connection Error"
             color: root.theme.textPrimary
+            font.family: root.theme.fontFamily
             font.bold: true
             font.pixelSize: 15
             horizontalAlignment: Text.AlignHCenter
@@ -51,6 +53,7 @@ Item {
             width: parent.width
             text: Helper.humanErrorMessage(root.error)
             color: root.theme.textSecondary
+            font.family: root.theme.fontFamily
             font.pixelSize: 13
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -76,6 +79,7 @@ Item {
                 anchors.centerIn: parent
                 text: root.isRefreshing ? "Retrying..." : "Retry"
                 color: (buttonMouseArea.containsMouse || root.isRefreshing) ? root.theme.accent : root.theme.textPrimary
+                font.family: root.theme.fontFamily
                 font.pixelSize: 13
                 font.bold: true
             }

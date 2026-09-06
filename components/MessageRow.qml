@@ -73,6 +73,7 @@ Item {
                     Text {
                         text: root.message ? (root.message.senderName || (root.isMine ? "You" : "")) : ""
                         color: root.isMine ? root.theme.accent : root.theme.textPrimary
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
@@ -82,6 +83,7 @@ Item {
                     Text {
                         text: root.formatTime(root.message ? root.message.timestamp : null)
                         color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 11
                     }
                 }
@@ -91,6 +93,7 @@ Item {
                     visible: !root.isUnsupported
                     text: root.message ? (root.message.text || "") : ""
                     color: root.theme.textPrimary
+                    font.family: root.theme.fontFamily
                     font.pixelSize: 13
                     font.italic: root.isPending
                     wrapMode: Text.Wrap
@@ -121,6 +124,7 @@ Item {
                     Text {
                         text: root.statusText
                         color: root.statusColor
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 11
                         font.italic: root.isPending
                     }

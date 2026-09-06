@@ -1,15 +1,24 @@
 .pragma library
 
+function stripHtml(s) {
+  return (s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function truncate(s, max) {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 3).trimEnd() + "...";
+}
+
 function formatSnippet(chat) {
   if (!chat) return "";
   var preview = chat.preview;
   if (!preview) return "";
   if (preview.kind !== "text") return "Unsupported message";
-  var text = preview.text || "";
+  var text = stripHtml(preview.text);
   if (chat.type === "group" && preview.senderName) {
-    return preview.senderName + ": " + text;
+    return truncate(preview.senderName + ": " + text, 90);
   }
-  return text;
+  return truncate(text, 90);
 }
 
 function formatTimestamp(isoStr) {

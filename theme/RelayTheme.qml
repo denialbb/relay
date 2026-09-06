@@ -49,4 +49,8 @@ QtObject {
 
     property color error: (typeof Color !== "undefined" && Color && (Color.urgent || Color.error))
         ? (Color.urgent || Color.error) : _defaultError
+
+    // Omarchy UI font (follows `omarchy font set` via Style.font); empty falls back to Qt default.
+    property string fontFamily: (typeof Style !== "undefined" && Style && Style.font && Style.font.family)
+        ? Style.font.family : ""
 }

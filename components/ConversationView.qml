@@ -64,6 +64,9 @@ Item {
         Composer {
             id: replyComposer
             Layout.fillWidth: true
+            Layout.leftMargin: root.metrics.spacingMD
+            Layout.rightMargin: root.metrics.spacingMD
+            Layout.bottomMargin: root.metrics.spacingSM
             enabled: !root.isReadOnly
             busy: root.busy
             onSubmit: function(text) {
@@ -92,14 +95,23 @@ Item {
     }
 
     function scrollDown() {
-        root.scrollBy(100)
+        root.scrollBy(75)
     }
 
     function scrollUp() {
-        root.scrollBy(-100)
+        root.scrollBy(-75)
+    }
+
+    function scrollToBottom() {
+        scrollAnim.stop()
+        messageListView.positionViewAtEnd()
     }
 
     function focusComposer() {
         replyComposer.focusInput()
+    }
+
+    function blurComposer() {
+        replyComposer.blur()
     }
 }

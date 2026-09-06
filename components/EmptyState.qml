@@ -28,6 +28,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: "✓"
+                font.family: root.theme.fontFamily
                 font.pixelSize: 20
                 color: root.theme.success
             }
@@ -37,6 +38,7 @@ Item {
             width: parent.width
             text: root.title
             color: root.theme.textPrimary
+            font.family: root.theme.fontFamily
             font.bold: true
             font.pixelSize: 15
             horizontalAlignment: Text.AlignHCenter
@@ -47,6 +49,7 @@ Item {
             width: parent.width
             text: root.message
             color: root.theme.textSecondary
+            font.family: root.theme.fontFamily
             font.pixelSize: 13
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap

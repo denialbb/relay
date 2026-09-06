@@ -82,6 +82,7 @@ Rectangle {
                 visible: !avatarImg.visible
                 text: Helper.getInitials(root.chat ? root.chat.title : "")
                 color: root.theme.textPrimary
+                font.family: root.theme.fontFamily
                 font.bold: true
                 font.pixelSize: 13
             }
@@ -94,30 +95,49 @@ Rectangle {
 
             Item {
                 width: parent.width
-                implicitHeight: Math.max(titleText.implicitHeight, timeText.implicitHeight)
+                implicitHeight: Math.max(titleText.implicitHeight, metaColumn.implicitHeight)
 
                 Text {
                     id: titleText
                     anchors.left: parent.left
-                    anchors.right: timeText.left
+                    anchors.right: metaColumn.left
                     anchors.rightMargin: root.metrics.spacingSM
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.chat ? (root.chat.title || "Unknown") : ""
                     font.bold: true
+                    font.family: root.theme.fontFamily
                     color: root.theme.textPrimary
                     font.pixelSize: 13
                     elide: Text.ElideRight
                     textFormat: Text.PlainText
                 }
 
-                Text {
-                    id: timeText
+                Column {
+                    id: metaColumn
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Helper.formatTimestamp(root.chatLastActivity)
-                    color: root.theme.textSecondary
-                    font.pixelSize: 11
-                    textFormat: Text.PlainText
+                    spacing: 0
+
+                    Text {
+                        id: timeText
+                        anchors.right: parent.right
+                        text: Helper.formatTimestamp(root.chatLastActivity)
+                        color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 11
+                        textFormat: Text.PlainText
+                    }
+
+                    Text {
+                        id: pinText
+                        anchors.right: parent.right
+                        visible: Boolean(root.chat && root.chat.isPinned)
+                        text: "\uf08d"
+                        color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                        textFormat: Text.PlainText
+                    }
                 }
             }
 
@@ -126,6 +146,7 @@ Rectangle {
                 width: parent.width
                 text: Helper.formatSnippet(root.chat)
                 color: root.theme.textSecondary
+                font.family: root.theme.fontFamily
                 font.pixelSize: 12
                 elide: Text.ElideRight
                 maximumLineCount: 1
