@@ -1,15 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "denial.beeper-relay",
+  "id": "denialbb.beeper-relay",
   "name": "Relay",
-  "version": "1.1.0",
-  "author": "denial",
+  "version": "1.1.1",
+  "author": "Daniel Biasiotto",
   "license": "MIT",
   "homepage": "https://github.com/denialbb/relay",
   "description": "Keyboard-first unread Beeper triage drawer.",
-  "kinds": [
-    "bar-widget"
-  ],
+  "kinds": ["bar-widget"],
   "entryPoints": {
     "barWidget": "BarWidget.qml"
   },
