@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "denial.beeper-relay",
   "name": "Relay",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "denial",
   "description": "Keyboard-first unread Beeper triage drawer.",
   "kinds": [

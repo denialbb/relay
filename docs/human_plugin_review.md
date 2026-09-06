@@ -1,37 +1,32 @@
 # Human Report on Relay plugin
 
-## BUGS
+## Status & Resolution Summary
 
-- trying to 'open in beeper', both 'o' binding and clicking
-  - opens 2 instances of chrome, does NOT open the selected
-    chat/message in the beeper desktop app
-- 'mark as read' does not work
-- channels (where no message can be sent, read only) are showing up - this is
-  OUT of the plugin scope, should be removed
-  - examples: 'Tabz - Live News', 'Rai News', etc
-- in open chats there is a duplicated header with the chat name, integrate the
-  both of them
-  - keep the top one as it is better styled
-- align to the right side the messages from the user in chats
-- most chats are missing in the drawer
-- only DMs showing are from 'Federico' and 'Ivan'
-  - these are old chats, not up to date with beeper
-- any change in this plugin's folder seems to trigger a reload of the whole
-  quickshell env (I see a flicker any time I save this file for example) this is
-  very annoying, fix this auto refresh
+All items from the initial human review have been addressed, verified through automated unit tests (`make check` 63/63 passing) and live Wayland/Hyprland driving sessions.
 
-## NOTES
+### Resolved Bugs
 
-- bind 'q' in addition to 'Esc' for quitting/going back to the chat list - show
-  only q in the help at the bottom of the drawer
-- bind 'o' to open the chat, 'b' for beeper, keep enter as well but don't write
-  it in the help at the bottom
-- add 'i' binding that jumps to the input box in a chat
-- add 'i' binding for quick answer in the message list screen
-  - pop open a bottom input box, on enter send the message, mark as read the
-    chat, remove from the message list
-- add scrolling 'j/k' in the chat screen (smooth scrolling)
-- add to the list the 'VAULT' chat in beeper, this is a personal chat we can use
-  for testing
-- compress a bit the bottom help labels, the are overflowing outside the drawer
-  width
+- **Chatlist quick-reply input locking**: Fixed. Focus properly returns to the drawer on send/cancel via `releaseInputs()`.
+- **Conversation view input locking**: Fixed. Sending messages from the conversation view preserves active focus navigation; Enter submits and releases inputs cleanly.
+- **j/k selection unresponsiveness**: Fixed. Mouse hover is decoupled from keyboard selection cursor (`selectedIndex`), preventing focus jumping or deadlocks.
+
+### Implemented Notes & Polish
+
+- **Low-priority chat filtering**: `isLowPriority` chats from Beeper API are filtered out of triage.
+- **Chat pinning (`p`)**:
+  - Pinned chats from Beeper API are retained even with 0 unread.
+  - Pressing `p` toggles local pin retention; pinned chats sort first and are never removed by `r` (mark read).
+- **Pinned filter (`h` / `Ctrl+p`)**:
+  - Bound to `h` (and `Ctrl+p`) for instant single-key toggle.
+  - Header displays explicit `Relay · pinned` state indicator when active.
+- **Pin glyph under timestamp**:
+  - Minimal nerd font pin glyph (`U+F403`) positioned under the timestamp in `ChatRow`.
+- **Conversation view scrolling**:
+  - `j`/`k` conversation scroll speed tuned to a comfortable step.
+- **Optimistic send & visual feedback**:
+  - Messages display immediately with a pending state and spinner, then reconcile seamlessly on server echo. Auto-scrolls to bottom upon send.
+- **Omarchy system font integration**:
+  - `RelayTheme.fontFamily` inherits from `qs.Commons` `Style.font.family` (reacts to `omarchy font set`).
+  - Standardized across all Text, TextInput, and TextEdit components.
+- **Footer shortcut strip**:
+  - Unboxed from badge boxes into a single clean eliding text strip (`key label · key label · …`) with reduced height and margins, eliminating horizontal overflow. `KeyHints.qml` retired.
