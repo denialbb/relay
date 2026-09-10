@@ -1,152 +1,70 @@
-# Relay (`denial.beeper-relay`)
+# Relay
 
-Keyboard-first unread Beeper triage drawer for Omarchy Quickshell (`panel` plugin).
+Keyboard-first unread Beeper triage drawer for the Omarchy bar.
 
-> **Who needs my attention right now, and can I handle it in one or two actions?**
+Relay answers one question: **who needs my attention right now, and can I handle it in one or two keystrokes?** It shows unread DMs and group chats from Beeper Desktop, lets you read the latest plain-text context, fire a quick reply, explicitly clear chats, or jump into Beeper Desktop for anything deeper. Selecting a chat never marks it read — that is always an explicit `r`.
 
-Relay provides a transient, lightweight desktop surface to triage incoming direct messages and group chats from Beeper Desktop. It allows fast scanning, reading latest plain-text context, sending quick replies, explicitly clearing unread state, or launching directly into Beeper Desktop when deeper interactions are required.
+![Reply sent to VAULT](assets/screenshots/01-vault-reply.png)
+![Inline quick reply from the list](assets/screenshots/02-quick-reply.png)
+![First-run token onboarding](assets/screenshots/03-onboarding.png)
 
----
+[Demo video: replying to VAULT and scrolling HAL](assets/demo.mp4)
 
-## Status & Release (v1.1.0)
+## Install
 
-**v1.1.0 official release ready:**
-- **Compact Surface**: Adaptive 400px surface to comfortably fit all onboarding steps and chat triage (`BarWidget.qml` dynamic height; `TriageDrawer.qml` implicitHeight: 400px with interactive `Ctrl+j`/`Ctrl+k` resizing between 220px and 700px).
-- **Fast Keyboard Triage**: Full keyboard navigation (`j`/`k`, `Enter`/`o`, `r`, `b`, `p`, `h`, `?`, `Esc`/`q`) with instant first-item selection on load.
-- **Unified Rounded Composer**: Shared compact `Composer.qml` for both in-chat and inline quick reply (`i`), featuring vertically centered text, rounded border radius, auto-expansion, `Enter` sending, and `Shift+Enter` newlines.
-- **Smart Chat Snippets**: Chat list snippets display clean first-line previews with automatic `You:` prefix for user-sent messages and sender prefix for group chats.
-- **Pin Retention & Privacy**: Pinned chats sort first and survive inbox zero clearance; message text is stripped from disk snapshots.
-- **Security & Onboarding**: First-run `OnboardingView.qml` prompts for local token when missing. Storage is hardened with directory permissions `0700` and files `0600` (`umask 077`).
-- **Quality Gates**: 71 unit and contract tests passing across 18 suites (`node:test`) with full mock API contracts, pin retention, error mapping, key hints wrapping, and geometry crop tests; strict McCabe cyclomatic complexity gate ($C \le 8$).
-
----
-
-## Architecture & Dependency Rule
-
-```text
-QML (BarWidget / TriageDrawer / Components)
-       ↓
-TriageModel (QML + JS Pure Helpers)
-       ↓
-BeeperService (Transport, Polling, Dedup, Backoff)
-       ↓
-BeeperApi (REST Endpoints Boundary)
-       ↓
-HTTP / Local Beeper Desktop API (http://localhost:23373)
+```sh
+omarchy plugin add https://github.com/denialbb/relay --enable
 ```
 
-- **UI Never shells out or makes direct HTTP calls**: All presentation components communicate purely via properties and signals.
-- **Pure domain logic in JS**: Data normalization, message classification, chat filtering, sorting, and error mapping live in standalone JS modules independently tested without Quickshell runtime.
-- **Theme integration**: Semantic color roles and spacing metrics adapt dynamically to Omarchy Quattro tokens (`qs.Commons` `Color` & `Style`) with built-in fallbacks.
-- **Clean Component Architecture**: `KeyHints.qml` is retired in favor of a clean, eliding formatted text footer (`formatHints`). First-run setup is handled cleanly via `OnboardingView.qml`.
+## Remove
 
----
-
-## Keyboard Navigation
-
-Relay is built for pure keyboard control:
-
-| Key | Context | Action |
-|---|---|---|
-| `j` / `Down` | Chat List / Conversation | Select next chat / scroll message history down |
-| `k` / `Up` | Chat List / Conversation | Select previous chat / scroll message history up |
-| `Enter` / `o` | Chat List | Open selected chat conversation (defaults to first chat on load) |
-| `i` | Chat List | Open quick reply inline modal (auto-expanding multiline input up to 100px) |
-| `i` / `c` | Conversation | Focus reply composer |
-| `p` | Chat List / Conversation | Toggle pin on active chat (pinned chats sort first, retained across clearance) |
-| `h` (or `Ctrl+p`) | Chat List / Conversation | Toggle hide pinned chats (`Relay · pins hidden`) |
-| `r` | Chat List / Conversation | Explicitly mark active chat as read (`Ctrl+r` force-refreshes inbox) |
-| `b` | Chat List / Conversation | Launch directly into Beeper Desktop (`beeper://chat/<chatId>`) |
-| `?` | Any | Toggle centered key hints bar between compact and full shortcut view |
-| `Esc` (or `q`) | Any | Close drawer, cancel quick reply, or return from conversation to chat list |
-| `Enter` | Composer / Quick Reply | Send message (immediate optimistic pending state with spinner) |
-| `Shift+Enter` | Composer / Quick Reply | Insert newline |
-| `Ctrl+j` (or `Ctrl+Down`) | Any | Grow drawer height (+50px step, animated, max 700px) |
-| `Ctrl+k` (or `Ctrl+Up`) | Any | Shrink drawer height (-50px step, animated, min 220px) |
-
-*Note: Selecting or viewing a chat never marks it read automatically. Marking read is always an explicit action (`r`).*
-
----
-
-## Repository Structure
-
-```text
-├── BarWidget.qml             # Status bar launcher button and panel popup wrapper (cappedContentHeight: 310px)
-├── TriageDrawer.qml          # Panel entry point: layout, focus trap, inline quick reply, eliding footer
-├── components/
-│   ├── ChatList.qml          # Scrollable unread chat list
-│   ├── ChatRow.qml           # Individual chat item (unread indicator, snippet, timestamps)
-│   ├── ChatRowHelper.js      # Pure helper functions for ChatRow formatting
-│   ├── ConversationView.qml  # Thread header, message list scroller, and composer anchor
-│   ├── MessageRow.qml        # Single message item (self/other, send states: pending/remote/failed)
-│   ├── Composer.qml          # Reply field with busy indicators and Enter send / Shift+Enter newline
-│   ├── UnsupportedMessage.qml# Non-text / media fallback card with "Open in Beeper" button
-│   ├── OnboardingView.qml    # First-run local API token onboarding flow
-│   ├── EmptyState.qml        # "Inbox Zero" presentation
-│   ├── ErrorState.qml        # Actionable error presentation with retry
-│   └── ErrorStateHelper.js   # Error message mapping helper
-├── services/
-│   ├── BeeperApi.js          # Pure API boundary (options-object REST endpoints)
-│   └── BeeperService.qml     # Transport state, 5s polling, exponential backoff (1s-30s), dedup, token/pin storage
-├── models/
-│   ├── TriageModel.js        # Pure domain logic (filter, normalize, classify, sort, reconcile, pin retention)
-│   └── TriageModel.qml       # QML bridge binding BeeperService to presentation
-├── theme/
-│   ├── RelayTheme.qml        # Semantic theme color roles bound to qs.Commons Color
-│   └── RelayMetrics.qml      # Spacing, radius, and animation timing bound to qs.Commons Style
-├── tests/
-│   ├── beeper-api.test.js    # BeeperApi contract and error mapping tests
-│   ├── triage-model.test.js  # Pure domain unit, pin retention, and mutation branch tests
-│   ├── chat-row-helper.test.js # UI formatting and initials helper tests
-│   ├── drive-geometry.test.mjs # Panel crop geometry calculation tests
-│   ├── message-classification.test.js # Message type classifier tests
-│   └── fixtures/             # Sample Beeper API JSON responses
-├── tools/
-│   ├── check-complexity.mjs  # Static McCabe cyclomatic complexity gate
-│   ├── drive-geometry.mjs    # Monitor geometry calculation utility
-│   └── drive-relay.mjs       # Headless test driving helper
-├── docs/
-│   ├── relay_beeper_triage_spec.md # Normative specification (v0.1)
-│   ├── ARCHITECTURE.md       # Detailed technical architecture & state flow
-│   ├── KEYMAP.md             # Complete keyboard interaction guide
-│   ├── SECURITY_AUDIT.md     # Security audit & permissions hardening report
-│   └── human_plugin_review.md# UX and design critique
-├── AGENTS.md                 # Universal guidelines and constraints for AI agents
-├── manifest.json             # Omarchy plugin descriptor
-└── Makefile                  # Test, lint, and verification targets
+```sh
+omarchy plugin remove denialbb.beeper-relay
 ```
 
----
+## Setup: Beeper API token
 
-## Development & Testing
+On first run Relay shows a token prompt instead of the inbox:
 
-Run all checks:
-```bash
-make check
+1. In Beeper Desktop: **Settings → Developers**.
+2. Copy your **API Access Token**.
+3. Paste it into Relay's prompt and press **Enter** (or click Save Token).
+
+## How the token is stored
+
+- Location: `~/.config/beeper-relay/token` (pins cache: `~/.config/beeper-relay/pins.json`).
+- The directory is created mode `0700`; the token file is written under `umask 077` (mode `0600`).
+- Relay loads the token once at startup and sends it as an `Authorization: Bearer` header to the local Beeper API only.
+- The token and message bodies are never written to logs. Pinned-chat snapshots on disk keep IDs and titles only — message previews are stripped before writing.
+- Chat content is rendered as plain text; HTML in snippets is stripped.
+
+## Dependencies
+
+- **Beeper Desktop** running, with its local HTTP API reachable at `http://127.0.0.1:23373`.
+- The `beeper://` URL scheme (used by the `b` shortcut to open a chat in Beeper Desktop).
+- **Omarchy Quattro** shell / Quickshell (provides `qs.Commons`, `qs.Ui` theme tokens).
+- No runtime npm dependencies. Node.js is only needed to run the test suite.
+
+## Usage
+
+| Key | Action |
+| --- | --- |
+| `j` / `k` | Next / previous chat (`Down`/`Up` also work; scroll inside a conversation) |
+| `Enter` / `o` | Open selected chat |
+| `i` | Quick reply from the list (`c` focuses the composer inside a conversation) |
+| `Enter` / `Shift+Enter` | Send message / newline (in composer) |
+| `r` | Mark active chat read (`Ctrl+r` force-refreshes the inbox) |
+| `p` | Pin chat (pins sort first and survive clearing) |
+| `h` | Hide / show pinned chats |
+| `b` | Open chat in Beeper Desktop |
+| `Ctrl+j` / `Ctrl+k` | Grow / shrink drawer (220–700px) |
+| `?` | Toggle full keyboard hints |
+| `Esc` / `q` | Close drawer, cancel reply, or back out of a conversation |
+
+## Development
+
+```sh
+make check   # manifest validate + tests + complexity gate
 ```
 
-Individual steps:
-```bash
-# Validate Omarchy plugin manifest & structure
-omarchy plugin validate ./
-
-# Run QML linter (when qmllint is available)
-qmllint BarWidget.qml TriageDrawer.qml components/*.qml services/*.qml models/*.qml theme/*.qml
-
-# Run test suite (72 tests across 18 suites)
-node --test tests/
-
-# Verify McCabe cyclomatic complexity constraints (C <= 8 / 10)
-node tools/check-complexity.mjs
-```
-
----
-
-## Specifications & Documentation
-
-- [Normative Specification (`docs/relay_beeper_triage_spec.md`)](docs/relay_beeper_triage_spec.md)
-- [Architecture & Data Flow (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md)
-- [Keyboard Reference (`docs/KEYMAP.md`)](docs/KEYMAP.md)
-- [Security Audit & Hardening (`docs/SECURITY_AUDIT.md`)](docs/SECURITY_AUDIT.md)
-- [Marketplace Release Report (`docs/MARKETPLACE_RELEASE_REPORT.md`)](docs/MARKETPLACE_RELEASE_REPORT.md)
-- [Agent Guidelines (`AGENTS.md`)](AGENTS.md)
+See `docs/` for the spec, architecture, keymap, and security audit.
