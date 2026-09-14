@@ -268,12 +268,12 @@ function reconcilePendingMessage(messages, remote) {
 }
 
 function isLocalMessage(m) {
-  return Boolean(m && typeof m.id === "string" && m.id.indexOf("local-") === 0);
+  return Boolean(m && typeof m.id === "string" && m.id.startsWith("local-"));
 }
 
 function messageTime(m) {
   var t = m && m.timestamp ? Date.parse(m.timestamp) : NaN;
-  return isNaN(t) ? 0 : t;
+  return Number.isNaN(t) ? 0 : t;
 }
 
 function isSameAuthorText(m, local) {
@@ -317,13 +317,28 @@ function preserveUnackedMessages(oldMessages, newMessages, chatId) {
   return base;
 }
 
+const API_ERROR_BY_CODE = {
+  ETIMEDOUT: "beeper-unavailable",
+  EUNTRUSTED: "untrusted-server",
+  EAUTH: "untrusted-server",
+};
+
+const API_ERROR_BY_STATUS = {
+  401: "unauthorized",
+  429: "rate-limited",
+};
+
+function codeApiError(code) {
+  return API_ERROR_BY_CODE[code] || null;
+}
+
+function statusApiError(status) {
+  if (status >= 500) return "server-error";
+  return API_ERROR_BY_STATUS[status] || null;
+}
+
 function mapApiError(error) {
   if (!error) return "unknown";
   if (error.invalidBody) return "invalid-response";
-  if (error.code === "ETIMEDOUT") return "beeper-unavailable";
-  if (error.code === "EUNTRUSTED" || error.code === "EAUTH") return "untrusted-server";
-  if (error.status === 401) return "unauthorized";
-  if (error.status === 429) return "rate-limited";
-  if (error.status >= 500) return "server-error";
-  return "unknown";
+  return codeApiError(error.code) || statusApiError(error.status) || "unknown";
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync, spawnSync as spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { calculateCropGeometry } from './drive-geometry.mjs';

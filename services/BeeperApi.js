@@ -2,14 +2,9 @@
 // options is always an object so new API params don't change call sites.
 
 let defaultBaseUrl = "http://127.0.0.1:23373";
-let defaultToken = "";
 
 export function setDefaultBaseUrl(url) {
   defaultBaseUrl = url;
-}
-
-export function setDefaultToken(token) {
-  defaultToken = token;
 }
 
 // Canonical response-shape normalization (spec §4.3, §6). Beeper returns
@@ -51,9 +46,7 @@ function classifyNetworkError(err) {
   return "unknown";
 }
 
-async function requestJson(url, init = {}, options = {}) {
-  const timeoutMs = options.timeoutMs ?? 10000;
-
+async function requestJson(url, init = {}, _options = {}) {
   // url is something like http://127.0.0.1:40123/v1/chats/search
   // We extract the path
   let parsedUrl;

@@ -37,7 +37,7 @@ function formatSnippet(chat) {
 function formatTimestamp(isoStr) {
   if (!isoStr) return "";
   var d = new Date(isoStr);
-  if (isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return "";
   var now = new Date();
   if (d.toDateString() === now.toDateString()) {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
