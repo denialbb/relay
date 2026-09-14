@@ -52,7 +52,8 @@ Item {
                 }
 
                 onCountChanged: {
-                    messageListView.positionViewAtEnd()
+                    // Deferred: delegates need a layout pass before the end is valid.
+                    Qt.callLater(messageListView.positionViewAtEnd)
                 }
 
                 onHeightChanged: {
@@ -74,6 +75,10 @@ Item {
                 root.submitReply(text)
             }
         }
+    }
+
+    onVisibleChanged: {
+        if (root.visible) Qt.callLater(root.scrollToBottom)
     }
 
     NumberAnimation {

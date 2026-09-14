@@ -304,6 +304,16 @@ describe("calculateUnreadTotal", () => {
       3,
     );
   });
+
+  it("excludes VAULT (not main inbox)", () => {
+    assert.equal(
+      calculateUnreadTotal([
+        { id: "vault", title: "VAULT", unreadCount: 5 },
+        { id: "a", title: "Alice", unreadCount: 2 },
+      ]),
+      2,
+    );
+  });
 });
 
 describe("selectPreview", () => {

@@ -60,6 +60,25 @@ function classifyMessage(message) {
   return "text";
 }
 
+const UNSUPPORTED_TAGS = {
+  IMAGE: "Image",
+  VIDEO: "Video",
+  VOICE: "Audio",
+  AUDIO: "Audio",
+  FILE: "File",
+  STICKER: "Sticker",
+  LOCATION: "Location",
+  NOTICE: "Notice",
+};
+
+function unsupportedTag(message) {
+  if (message && message.isDeleted) return "Deleted";
+  if (message && typeof message.type === "string" && UNSUPPORTED_TAGS[message.type]) {
+    return UNSUPPORTED_TAGS[message.type];
+  }
+  return "Unsupported";
+}
+
 function getPreview(preview, existingChat) {
   if (preview) return normalizeMessage(preview);
   if (existingChat && existingChat.preview) return existingChat.preview;
@@ -136,6 +155,7 @@ function normalizeMessage(message) {
     isMine: isSenderUser(m),
     isUnread: getUnreadState(m.isUnread),
     kind,
+    tag: kind === "text" ? null : unsupportedTag(m),
     text: getMessageText(kind, m.text),
     sendState: m.sendState ?? "remote",
   };
@@ -159,10 +179,10 @@ function sortChats(chats) {
 
 function calculateUnreadTotal(chats) {
   if (!Array.isArray(chats)) return 0;
-  return chats.reduce(
-    (acc, c) => acc + (typeof c?.unreadCount === "number" ? c.unreadCount : 0),
-    0,
-  );
+  return chats.reduce((acc, c) => {
+    if (!c || isVaultChat(c)) return acc;
+    return acc + (typeof c.unreadCount === "number" ? c.unreadCount : 0);
+  }, 0);
 }
 
 // Pin retention (pure): refresh snapshots from fresh normalized chats,

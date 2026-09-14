@@ -13,6 +13,8 @@ Item {
     property RelayTheme theme: RelayTheme {}
     property RelayMetrics metrics: RelayMetrics {}
 
+    readonly property string tagText: root.message && root.message.tag ? root.message.tag + " · " : ""
+
     implicitWidth: 320
     implicitHeight: container.implicitHeight
     width: parent ? parent.width : implicitWidth
@@ -32,7 +34,7 @@ Item {
             spacing: root.metrics.spacingSM
 
             Text {
-                text: "Unsupported in Relay · Open in Beeper ↗"
+                text: root.tagText + "Unsupported in Relay · Open in Beeper ↗"
                 color: mouseArea.containsMouse ? root.theme.accent : root.theme.textSecondary
                 font.family: root.theme.fontFamily
                 font.pixelSize: 12

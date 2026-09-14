@@ -23,7 +23,7 @@ function formatSnippet(chat) {
   if (!chat) return "";
   var preview = chat.preview;
   if (!preview) return "";
-  if (preview.kind !== "text") return "Unsupported message";
+  if (preview.kind !== "text") return (preview.tag || "Unsupported") + " message";
   var text = extractFirstLine(preview.text);
   if (preview.isMine) {
     return truncate("You: " + text, 90);

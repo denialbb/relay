@@ -19,6 +19,10 @@ Panel {
         badgeService.initialize();
     }
 
+    onOpenedChanged: {
+        badgeService.refreshUnread();
+    }
+
     BeeperService {
         id: badgeService
         pollInterval: 15000
