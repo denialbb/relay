@@ -490,6 +490,14 @@ Item {
     }
 
     function onRefreshFailure(err) {
+        if (err && (err.code === "EUNTRUSTED" || err.code === "EAUTH")) {
+            // Server identity unknown/changed: fall back to onboarding so
+            // saving the token again re-trusts the current Beeper install.
+            root.isRefreshing = false;
+            root.hasToken = false;
+            root.refreshFinished();
+            return;
+        }
         root.isRefreshing = false;
         root.lastError = TM.mapApiError(err);
         root.status = "error";

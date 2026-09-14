@@ -53,70 +53,87 @@ function classifyNetworkError(err) {
 
 async function requestJson(url, init = {}, options = {}) {
   const timeoutMs = options.timeoutMs ?? 10000;
-  
+
   // url is something like http://127.0.0.1:40123/v1/chats/search
   // We extract the path
-  const parsedUrl = new URL(url);
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error("unknown");
+  }
   const path = parsedUrl.pathname + parsedUrl.search;
-  
-  // For testing, pass the port
-  const env = { ...process.env, BEEPER_RELAY_TEST_PORT: parsedUrl.port };
-console.error("URL:", url, "PORT:", parsedUrl.port);
-  
-  const pyPath = join(dirname(fileURLToPath(import.meta.url)), "beeper_bridge.py");
-  
+
+  // Test harness port: the bridge honors it only with the explicit
+  // BEEPER_RELAY_ALLOW_TEST_PORT=1 opt-in (never set outside tests).
+  const env = {
+    ...process.env,
+    BEEPER_RELAY_TEST_PORT: parsedUrl.port,
+    BEEPER_RELAY_ALLOW_TEST_PORT: "1",
+  };
+
+  const pyPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "beeper_bridge.py",
+  );
+
   let stdout;
   try {
-      
-      stdout = await new Promise((resolve, reject) => {
-          const child = spawn("python3", [pyPath, "request", init.method || "GET", path], {
-              env,
-              stdio: ['pipe', 'pipe', 'pipe']
-          });
-          
-          let out = "";
-          let errOut = "";
-          child.stdout.on("data", d => out += d);
-          child.stderr.on("data", d => errOut += d);
-          
-          child.on("close", (code) => {
-              if (code !== 0 && !out) {
-                  reject(new Error(errOut || "Process exited with code " + code));
-              } else {
-                  resolve(out);
-              }
-          });
-          child.on("error", reject);
-          
-          let bodyData = init.body ? init.body.length.toString() + "\n" + init.body : "\n";
-          child.stdin.write(bodyData);
-          child.stdin.end();
-      });
+    stdout = await new Promise((resolve, reject) => {
+      const child = spawn(
+        "python3",
+        [pyPath, "request", init.method || "GET", path],
+        {
+          env,
+          stdio: ["pipe", "pipe", "pipe"],
+        },
+      );
 
+      let out = "";
+      let errOut = "";
+      child.stdout.on("data", (d) => (out += d));
+      child.stderr.on("data", (d) => (errOut += d));
+
+      child.on("close", (code) => {
+        if (code !== 0 && !out) {
+          reject(new Error(errOut || "Process exited with code " + code));
+        } else {
+          resolve(out);
+        }
+      });
+      child.on("error", reject);
+
+      const bodyData = init.body
+        ? init.body.length.toString() + "\n" + init.body
+        : "\n";
+      child.stdin.write(bodyData);
+      child.stdin.end();
+    });
   } catch (err) {
-      if (err.code === 'ETIMEDOUT' || err.message.includes('ETIMEDOUT')) {
-          throw new Error("beeper-unavailable");
-      }
-      console.error("STDERR:", err.stderr ? err.stderr.toString() : "NONE"); throw new Error(classifyNetworkError(err));
+    if (err.code === "ETIMEDOUT" || err.message.includes("ETIMEDOUT")) {
+      throw new Error("beeper-unavailable");
+    }
+    console.error("STDERR:", err.stderr ? err.stderr.toString() : "NONE");
+    throw new Error(classifyNetworkError(err));
   }
 
   let parsed;
   try {
-      parsed = JSON.parse(stdout);
-  } catch (e) {
-      throw new Error("invalid-response");
+    parsed = JSON.parse(stdout);
+  } catch {
+    throw new Error("invalid-response");
   }
 
   if (parsed.error) {
-      if (parsed.code === "ECONN") throw new Error("beeper-unavailable");
-      if (parsed.code === "ELIMIT") throw new Error("invalid-response");
-      throw new Error("beeper-unavailable");
+    if (parsed.code === "ECONN") throw new Error("beeper-unavailable");
+    if (parsed.code === "ELIMIT") throw new Error("invalid-response");
+    throw new Error("beeper-unavailable");
   }
 
   if (parsed.status >= 200 && parsed.status < 300) {
-      return parsed.data;
+    return parsed.data;
   }
-  
+
   throw new Error(classifyHttpStatus(parsed.status));
 }
 
@@ -176,9 +193,7 @@ export async function markRead(chatId, messageId = null, options = {}) {
   const encodedChatId = encodeURIComponent(chatId);
   const url = new URL(`/v1/chats/${encodedChatId}/read`, base);
   const payload =
-    typeof messageId === "string"
-      ? { messageID: messageId, messageId }
-      : {};
+    typeof messageId === "string" ? { messageID: messageId, messageId } : {};
   return requestJson(
     url.toString(),
     {

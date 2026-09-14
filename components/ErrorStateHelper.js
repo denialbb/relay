@@ -6,6 +6,7 @@ var ERROR_MESSAGES = {
   "rate-limited": "Too many requests. Please wait a moment before retrying.",
   "server-error": "Beeper local server encountered an error.",
   "invalid-response": "Received an invalid response from Beeper.",
+  "untrusted-server": "Beeper server identity is not verified. Save your token again to trust this Beeper install.",
   "unknown": "An unexpected error occurred."
 };
 

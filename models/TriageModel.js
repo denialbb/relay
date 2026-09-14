@@ -301,6 +301,7 @@ function mapApiError(error) {
   if (!error) return "unknown";
   if (error.invalidBody) return "invalid-response";
   if (error.code === "ETIMEDOUT") return "beeper-unavailable";
+  if (error.code === "EUNTRUSTED" || error.code === "EAUTH") return "untrusted-server";
   if (error.status === 401) return "unauthorized";
   if (error.status === 429) return "rate-limited";
   if (error.status >= 500) return "server-error";
