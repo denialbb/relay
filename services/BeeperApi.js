@@ -15,6 +15,10 @@ export function setDefaultToken(token) {
 // Canonical response-shape normalization (spec §4.3, §6). Beeper returns
 // `{ items: [...] }`; older stubs/fixtures use `{ chats: [...] }` or
 // `{ messages: [...] }`; some payloads are already arrays.
+import { spawn } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export function extractItems(data, key) {
   if (Array.isArray(data)) return data;
   if (!data) return [];
@@ -49,31 +53,71 @@ function classifyNetworkError(err) {
 
 async function requestJson(url, init = {}, options = {}) {
   const timeoutMs = options.timeoutMs ?? 10000;
-  const token = options.token ?? defaultToken;
-  const headers = { ...init.headers };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  let response;
+  
+  // url is something like http://127.0.0.1:40123/v1/chats/search
+  // We extract the path
+  const parsedUrl = new URL(url);
+  const path = parsedUrl.pathname + parsedUrl.search;
+  
+  // For testing, pass the port
+  const env = { ...process.env, BEEPER_RELAY_TEST_PORT: parsedUrl.port };
+console.error("URL:", url, "PORT:", parsedUrl.port);
+  
+  const pyPath = join(dirname(fileURLToPath(import.meta.url)), "beeper_bridge.py");
+  
+  let stdout;
   try {
-    response = await fetch(url, {
-      ...init,
-      headers,
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+      
+      stdout = await new Promise((resolve, reject) => {
+          const child = spawn("python3", [pyPath, "request", init.method || "GET", path], {
+              env,
+              stdio: ['pipe', 'pipe', 'pipe']
+          });
+          
+          let out = "";
+          let errOut = "";
+          child.stdout.on("data", d => out += d);
+          child.stderr.on("data", d => errOut += d);
+          
+          child.on("close", (code) => {
+              if (code !== 0 && !out) {
+                  reject(new Error(errOut || "Process exited with code " + code));
+              } else {
+                  resolve(out);
+              }
+          });
+          child.on("error", reject);
+          
+          let bodyData = init.body ? init.body.length.toString() + "\n" + init.body : "\n";
+          child.stdin.write(bodyData);
+          child.stdin.end();
+      });
+
   } catch (err) {
-    throw new Error(classifyNetworkError(err));
+      if (err.code === 'ETIMEDOUT' || err.message.includes('ETIMEDOUT')) {
+          throw new Error("beeper-unavailable");
+      }
+      console.error("STDERR:", err.stderr ? err.stderr.toString() : "NONE"); throw new Error(classifyNetworkError(err));
   }
 
-  if (!response.ok) {
-    throw new Error(classifyHttpStatus(response.status));
-  }
-
+  let parsed;
   try {
-    return await response.json();
-  } catch {
-    throw new Error("invalid-response");
+      parsed = JSON.parse(stdout);
+  } catch (e) {
+      throw new Error("invalid-response");
   }
+
+  if (parsed.error) {
+      if (parsed.code === "ECONN") throw new Error("beeper-unavailable");
+      if (parsed.code === "ELIMIT") throw new Error("invalid-response");
+      throw new Error("beeper-unavailable");
+  }
+
+  if (parsed.status >= 200 && parsed.status < 300) {
+      return parsed.data;
+  }
+  
+  throw new Error(classifyHttpStatus(parsed.status));
 }
 
 export async function searchUnreadChats(options = {}) {

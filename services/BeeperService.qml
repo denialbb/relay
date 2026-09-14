@@ -14,10 +14,9 @@ Item {
     property bool pollingActive: false
 
     property string baseUrl: "http://127.0.0.1:23373"
-    property string authToken: ""
     property string configDir: (Quickshell.env("HOME") || "") + "/.config/beeper-relay"
     property bool tokenLoaded: false
-    readonly property bool hasToken: Boolean(root.authToken && root.authToken.trim().length > 0)
+    property bool hasToken: false
 
     Component.onCompleted: {
         tokenProc.running = true;
@@ -25,25 +24,48 @@ Item {
 
     Process {
         id: tokenProc
-        command: ["cat", root.configDir + "/token"]
+        command: ["python3", Qt.resolvedUrl("beeper_bridge.py").toString().replace("file://", ""), "check_token"]
         stdout: StdioCollector {
             id: tokenOut
             waitForEnd: true
             onStreamFinished: {
-                root.handleTokenLoaded(tokenOut.text);
+                var parsed = null;
+                try {
+                    parsed = JSON.parse(tokenOut.text);
+                } catch (e) {}
+                
+                if (parsed && parsed.has_token) {
+                    root.hasToken = true;
+                    if (root.status === "error") {
+                        root.refreshUnread();
+                    }
+                } else {
+                    root.hasToken = false;
+                }
                 root.tokenLoaded = true;
             }
         }
     }
 
-    Process {
-        id: saveTokenProc
-        property string pendingToken: ""
-        onExited: function(code) {
-            if (code === 0 && saveTokenProc.pendingToken) {
-                root.authToken = saveTokenProc.pendingToken;
-                saveTokenProc.pendingToken = "";
-                root.initialize();
+    Component {
+        id: saveTokenProcComponent
+        Process {
+            property string tokenString: ""
+            command: ["python3", Qt.resolvedUrl("beeper_bridge.py").toString().replace("file://", ""), "save_token"]
+            
+            stdout: StdioCollector {
+                waitForEnd: true
+                onStreamFinished: {
+                    root.initialize();
+                    parent.destroy();
+                }
+            }
+            
+            Component.onCompleted: {
+                running = true;
+                if (tokenString) {
+                    write(tokenString.length.toString() + "\n" + tokenString);
+                }
             }
         }
     }
@@ -51,24 +73,13 @@ Item {
     function saveToken(rawToken) {
         var token = (rawToken || "").trim();
         if (!token) return;
-        saveTokenProc.pendingToken = token;
-        saveTokenProc.command = [
-            "sh", "-c",
-            "mkdir -p -m 700 \"$1\" && (umask 077 && printf '%s' \"$2\" > \"$1/token\")",
-            "--", root.configDir, token
-        ];
-        saveTokenProc.running = true;
+        saveTokenProcComponent.createObject(root, {
+            tokenString: token
+        });
     }
 
-    function handleTokenLoaded(raw) {
-        var token = (raw || "").trim();
-        root.authToken = token;
-        if (root.status === "error" && token !== "") {
-            root.refreshUnread();
-        }
-    }
+    function handleTokenLoaded(raw) {}
 
-    property int pollInterval: 5000
     property int backoffInterval: 1000
 
     property bool isRefreshing: false
@@ -170,10 +181,7 @@ Item {
     }
 
     function initialize() {
-        var envToken = Quickshell.env("BEEPER_ACCESS_TOKEN");
-        if (envToken && !root.authToken) {
-            root.authToken = envToken.trim();
-        }
+        root.hasToken = true;
         root.pollingActive = true;
         root.refreshUnread();
     }
@@ -631,59 +639,75 @@ Item {
         root.errorChanged();
     }
 
-    function executeHttp(method, path, body, onSuccess, onFailure) {
-        var xhr = new XMLHttpRequest();
-        xhr.open(method, root.baseUrl + path, true);
-        xhr.timeout = 10000;
-        root.applyAuthHeader(xhr);
-        root.applyContentTypeHeader(xhr, body);
-        root.bindXhrEvents(xhr, onSuccess, onFailure);
-        xhr.send(body ? JSON.stringify(body) : null);
-    }
+    Component {
+        id: requestProcComponent
+        Process {
+            property var onSuccess
+            property var onFailure
+            property string payloadString: ""
+            property string methodArg: ""
+            property string pathArg: ""
+            
+            command: ["python3", Qt.resolvedUrl("beeper_bridge.py").toString().replace("file://", ""), "request", methodArg, pathArg]
 
-    function applyAuthHeader(xhr) {
-        if (root.authToken) {
-            xhr.setRequestHeader("Authorization", "Bearer " + root.authToken);
-        }
-    }
-
-    function applyContentTypeHeader(xhr, body) {
-        if (body) {
-            xhr.setRequestHeader("Content-Type", "application/json");
-        }
-    }
-
-    function bindXhrEvents(xhr, onSuccess, onFailure) {
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                root.handleXhrDone(xhr, onSuccess, onFailure);
+            stdout: StdioCollector {
+                id: stdoutCol
+                waitForEnd: true
+                onStreamFinished: {
+                    root.handleRequestStreamFinished(parent, stdoutCol.text);
+                }
             }
-        };
-        xhr.ontimeout = function() {
-            onFailure({ code: "ETIMEDOUT" });
-        };
-        xhr.onerror = function() {
-            onFailure({ code: "ECONNREFUSED" });
-        };
-    }
-
-    function handleXhrDone(xhr, onSuccess, onFailure) {
-        if (xhr.status >= 200 && xhr.status < 300) {
-            root.parseXhrResponse(xhr.responseText, onSuccess, onFailure);
-        } else {
-            onFailure({ status: xhr.status });
+            
+            Component.onCompleted: {
+                running = true;
+                if (payloadString) {
+                    write(payloadString.length.toString() + "\n" + payloadString);
+                } else {
+                    write("\n");
+                }
+            }
         }
     }
 
-    function parseXhrResponse(text, onSuccess, onFailure) {
-        var parsed = null;
+
+function parseProcOutput(text) {
+        if (!text) return {};
         try {
-            parsed = text ? JSON.parse(text) : {};
+            return JSON.parse(text);
         } catch (e) {
-            onFailure({ invalidBody: true });
-            return;
+            return { parseError: true };
         }
-        onSuccess(parsed);
     }
-}
 
+    function notifyFailure(proc, errObj) {
+        if (proc.onFailure) proc.onFailure(errObj);
+    }
+
+    function notifySuccess(proc, data) {
+        if (proc.onSuccess) proc.onSuccess(data || {});
+    }
+
+    function isSuccessStatus(status) {
+        return status >= 200 && status < 300;
+    }
+
+    function handleRequestStreamFinished(proc, text) {
+        var p = root.parseProcOutput(text);
+        if (p.parseError) root.notifyFailure(proc, { invalidBody: true });
+        else if (p.error) root.notifyFailure(proc, p);
+        else if (root.isSuccessStatus(p.status)) root.notifySuccess(proc, p.data);
+        else root.notifyFailure(proc, { status: p.status });
+        proc.destroy();
+    }
+
+    function executeHttp(method, path, body, onSuccess, onFailure) {
+        requestProcComponent.createObject(root, {
+            methodArg: method,
+            pathArg: path,
+            payloadString: body ? JSON.stringify(body) : "",
+            onSuccess: onSuccess,
+            onFailure: onFailure
+        });
+    }
+
+}

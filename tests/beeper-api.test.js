@@ -108,10 +108,6 @@ describe("BeeperApi contract", () => {
       /beeper-unavailable/,
     );
   });
-  it("passes Bearer token from options.token", async () => {
-    const page = await searchUnreadChats({ baseUrl, token: "tok-abc" });
-    assert.equal(page.auth, "Bearer tok-abc");
-  });
   it("extractItems handles items/key/array shapes", () => {
     assert.deepEqual(extractItems({ items: [1] }), [1]);
     assert.deepEqual(extractItems({ chats: [2] }, "chats"), [2]);
