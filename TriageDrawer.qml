@@ -9,6 +9,9 @@ import "theme"
 
 FocusScope {
     id: root
+    Component.onCompleted: {
+        beeperService.initialize();
+    }
 
     property bool open: false
     property int selectedIndex: -1

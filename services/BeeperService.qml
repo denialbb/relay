@@ -11,6 +11,7 @@ Item {
     property var activeChat: null
     property string lastRefreshAt: ""
     property string lastError: ""
+    property int pollInterval: 15000
     property bool pollingActive: false
 
     property string baseUrl: "http://127.0.0.1:23373"
@@ -57,7 +58,7 @@ Item {
                 waitForEnd: true
                 onStreamFinished: {
                     root.initialize();
-                    parent.destroy();
+                    
                 }
             }
             
@@ -705,7 +706,7 @@ function parseProcOutput(text) {
         else if (p.error) root.notifyFailure(proc, p);
         else if (root.isSuccessStatus(p.status)) root.notifySuccess(proc, p.data);
         else root.notifyFailure(proc, { status: p.status });
-        proc.destroy();
+        
     }
 
     function executeHttp(method, path, body, onSuccess, onFailure) {
