@@ -2,7 +2,7 @@
 
 **Plugin ID:** `denialbb.beeper-relay`  
 **Display Name:** Relay  
-**Version:** `v1.1.2`  
+**Version:** `v1.1.3`  
 **Author:** Daniel Biasiotto  
 **License:** MIT  
 **Category:** Communication  
@@ -123,7 +123,7 @@ _Validation exit code: `0` (clean)._
   "schemaVersion": 1,
   "id": "denialbb.beeper-relay",
   "name": "Relay",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "author": "Daniel Biasiotto",
   "license": "MIT",
   "homepage": "https://github.com/denialbb/relay",

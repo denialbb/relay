@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { calculateCropGeometry } from "./drive-geometry.mjs";
 
-const PLUGIN_ID = "denial.beeper-relay";
+const PLUGIN_ID = "denialbb.beeper-relay";
 const BEEPER_URL = process.env.BEEPER_URL || "http://127.0.0.1:23373";
 
 function run(bin, args = [], opts = {}) {

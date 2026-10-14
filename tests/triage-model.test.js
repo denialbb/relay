@@ -16,6 +16,7 @@ const {
   preserveUnackedMessages,
   isLocalMessage,
   mapApiError,
+  pruneDismissedChats,
   refreshPinSnapshots,
   withRetainedPins,
   stripPreviewsForStorage,
@@ -98,14 +99,25 @@ describe("filterEligibleChats", () => {
       ["c4"],
     );
   });
-  it("drops low-priority chats even when unread", () => {
-    const out = filterEligibleChats([
-      { id: "a", type: "group", unreadCount: 3, isLowPriority: true },
-      { id: "b", type: "group", unreadCount: 3 },
-    ]);
+  it("shows muted and low-priority unread chats only when each preference is enabled", () => {
+    const chats = [
+      { id: "muted", type: "group", unreadCount: 2, isMuted: true },
+      { id: "low", type: "group", unreadCount: 3, isLowPriority: true },
+      { id: "both", type: "group", unreadCount: 4, isMuted: true, isLowPriority: true },
+    ];
+
+    assert.deepEqual(filterEligibleChats(chats).map((c) => c.id), []);
     assert.deepEqual(
-      out.map((c) => c.id),
-      ["b"],
+      filterEligibleChats(chats, { showMutedChats: true }).map((c) => c.id),
+      ["muted"],
+    );
+    assert.deepEqual(
+      filterEligibleChats(chats, { showLowPriorityChats: true }).map((c) => c.id),
+      ["low"],
+    );
+    assert.deepEqual(
+      filterEligibleChats(chats, { showMutedChats: true, showLowPriorityChats: true }).map((c) => c.id),
+      ["muted", "low", "both"],
     );
   });
 });
@@ -412,6 +424,38 @@ describe("mapApiError", () => {
   it("maps timeout -> beeper-unavailable, bad body -> invalid-response", () => {
     assert.equal(mapApiError({ code: "ETIMEDOUT" }), "beeper-unavailable");
     assert.equal(mapApiError({ invalidBody: true }), "invalid-response");
+  });
+
+  it("maps connection failure (ECONN) -> beeper-unavailable", () => {
+    assert.equal(mapApiError({ code: "ECONN" }), "beeper-unavailable");
+  });
+});
+
+describe("pruneDismissedChats", () => {
+  it("drops a dismissal once the chat shows newer activity", () => {
+    const dismissed = {
+      old: "2026-09-04T10:00:00Z",
+      fresh: "2026-09-04T10:00:00Z",
+    };
+    const chats = [
+      { id: "old", lastActivity: "2026-09-04T10:00:00Z" },
+      { id: "fresh", lastActivity: "2026-09-04T11:00:00Z" },
+      { id: "shown", lastActivity: "2026-09-04T12:00:00Z" },
+    ];
+    assert.deepEqual(Object.keys(pruneDismissedChats(dismissed, chats)), ["old"]);
+  });
+
+  it("keeps dismissals unchanged when no chat has newer activity", () => {
+    const dismissed = { a: "2026-09-04T10:00:00Z" };
+    const chats = [{ id: "a", lastActivity: "2026-09-04T10:00:00Z" }];
+    assert.deepEqual(pruneDismissedChats(dismissed, chats), dismissed);
+  });
+
+  it("handles bad input", () => {
+    assert.deepEqual(pruneDismissedChats(null, null), {});
+    assert.deepEqual(pruneDismissedChats({ a: "2026-09-04T10:00:00Z" }, null), {
+      a: "2026-09-04T10:00:00Z",
+    });
   });
 });
 

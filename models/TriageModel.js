@@ -16,15 +16,15 @@ function hasUnread(c) {
   return typeof c.unreadCount === "number" && c.unreadCount > 0;
 }
 
-function isMutedOrDisabled(c) {
-  return Boolean(c.isReadOnly || c.isMuted || c.isArchived || c.cannotMessage);
+function isMutedOrDisabled(c, showMutedChats) {
+  return Boolean(c.isReadOnly || (!showMutedChats && c.isMuted) || c.isArchived || c.cannotMessage);
 }
 
-function isChatEligible(c) {
+function isChatEligible(c, preferences) {
   if (!c || !VALID_CHAT_TYPES.has(c.type)) return false;
   if (isVaultChat(c)) return true;
-  if (c.isLowPriority === true) return false;
-  if (isMutedOrDisabled(c)) return false;
+  if (c.isLowPriority === true && !preferences.showLowPriorityChats) return false;
+  if (isMutedOrDisabled(c, preferences.showMutedChats)) return false;
   return hasUnread(c);
 }
 
@@ -36,9 +36,9 @@ function extractItems(data, key) {
   return [];
 }
 
-function filterEligibleChats(chats) {
+function filterEligibleChats(chats, preferences = {}) {
   if (!Array.isArray(chats)) return [];
-  return chats.filter(isChatEligible);
+  return chats.filter((chat) => isChatEligible(chat, preferences || {}));
 }
 
 function sortMessages(messages) {
@@ -318,6 +318,7 @@ function preserveUnackedMessages(oldMessages, newMessages, chatId) {
 }
 
 const API_ERROR_BY_CODE = {
+  ECONN: "beeper-unavailable",
   ETIMEDOUT: "beeper-unavailable",
   EUNTRUSTED: "untrusted-server",
   EAUTH: "untrusted-server",
@@ -341,4 +342,24 @@ function mapApiError(error) {
   if (!error) return "unknown";
   if (error.invalidBody) return "invalid-response";
   return codeApiError(error.code) || statusApiError(error.status) || "unknown";
+}
+
+function activityTime(value) {
+  var t = value && typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isNaN(t) ? 0 : t;
+}
+
+// A chat dismissed (read/replied) stays hidden until it shows activity newer
+// than the snapshot taken at dismissal; then it returns to the inbox.
+function pruneDismissedChats(dismissed, chats) {
+  const map = dismissed || {};
+  const list = Array.isArray(chats) ? chats : [];
+  let pruned = null;
+  for (const c of list) {
+    if (!c || !c.id || !map[c.id]) continue;
+    if (activityTime(c.lastActivity) <= activityTime(map[c.id])) continue;
+    if (!pruned) pruned = Object.assign({}, map);
+    delete pruned[c.id];
+  }
+  return pruned || map;
 }

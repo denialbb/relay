@@ -2,7 +2,7 @@ export function calculateCropGeometry(monitors, barWidgets, options = {}) {
   if (!Array.isArray(monitors) || monitors.length === 0) return null;
   if (!Array.isArray(barWidgets)) return null;
 
-  const widgetId = options.widgetId || 'denial.beeper-relay';
+  const widgetId = options.widgetId || 'denialbb.beeper-relay';
   const widget = barWidgets.find(w => w && w.id === widgetId);
   if (!widget) return null;
 

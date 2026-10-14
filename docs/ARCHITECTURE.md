@@ -1,6 +1,6 @@
 # Relay — Technical Architecture
 
-This document describes the runtime design, separation of concerns, data flow, security architecture, and error taxonomy for the Relay Beeper triage drawer (`denial.beeper-relay`) v1.1.0.
+This document describes the runtime design, separation of concerns, data flow, security architecture, and error taxonomy for the Relay Beeper triage drawer (`denialbb.beeper-relay`) v1.1.3.
 
 ---
 
@@ -52,12 +52,13 @@ This document describes the runtime design, separation of concerns, data flow, s
 - **`components/OnboardingView.qml`**: First-run local API token onboarding flow with instructions and secure token submission.
 - **`components/UnsupportedMessage.qml`**: Graceful card fallback for images, attachments, voice notes, or rich media with "Open in Beeper ↗" launcher.
 - **`components/EmptyState.qml`** & **`components/ErrorState.qml`**: Inbox zero and actionable error states.
+- **`components/SettingsView.qml`**: Keyboard-accessible muted/low-priority filter preferences.
 - *(Note: `KeyHints.qml` was retired in favor of the clean, centered eliding `formatHints` footer in `TriageDrawer.qml`).*
 
 ### Data Model Layer (`models/`)
 - **`models/TriageModel.qml`**: Reactive bridge exposing properties (`chats`, `activeChatId`, `activeMessages`, `unreadTotal`, `status`, `error`) and triage methods (`selectChat`, `closeChat`, `refresh`, `quickReply`, `submitReply`, `togglePin`, `markActiveChatRead`, `openInBeeper`).
 - **`models/TriageModel.js`**: Pure testable domain logic:
-  - `filterEligibleChats`: Retains unread `single` and `group` chats, excludes low-priority and muted/archived chats.
+  - `filterEligibleChats`: Retains unread `single` and `group` chats; muted and low-priority exclusions are user-configurable.
   - `normalizeChat` / `normalizeMessage`: Normalizes Beeper schemas to internal representations.
   - `classifyMessage`: Identifies `text` vs `unsupported`.
   - `sortChats`: Orders pinned chats first, then sorts by latest activity timestamp descending.
@@ -71,7 +72,7 @@ This document describes the runtime design, separation of concerns, data flow, s
   - Backoff: Exponential backoff ($1\text{s} \to 2\text{s} \to 4\text{s} \to \dots \le 30\text{s}$) upon network or server failures.
   - Request de-duplication: Prevents overlapping message loads or sync calls.
   - Local endpoint: Defaults to `http://localhost:23373`.
-  - Persistent storage: Manages `token` and `pins.json` with strict POSIX permissions.
+  - Persistent storage: Manages `token`, pins, and unread-filter preferences in `pins.json`.
 
 ---
 

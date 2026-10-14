@@ -88,15 +88,20 @@ describe("BeeperApi contract", () => {
     assert.match(page.query, /unreadOnly=true/);
     assert.match(page.query, /type=any/);
   });
-  it("request timeout -> beeper-unavailable", async () => {
+  it("request timeout -> beeper-unavailable within timeoutMs", async () => {
     const hanging = createServer(() => {});
     await new Promise((r) => hanging.listen(0, r));
     const hangingUrl = `http://127.0.0.1:${hanging.address().port}`;
-    await assert.rejects(
-      listMessages("c1", { baseUrl: hangingUrl, timeoutMs: 50 }),
-      /beeper-unavailable/,
-    );
-    hanging.close();
+    const startedAt = Date.now();
+    try {
+      await assert.rejects(
+        listMessages("c1", { baseUrl: hangingUrl, timeoutMs: 50 }),
+        /beeper-unavailable/,
+      );
+      assert.ok(Date.now() - startedAt < 2000, "timeoutMs should abort promptly");
+    } finally {
+      await new Promise((resolve) => hanging.close(resolve));
+    }
   });
   it("connection refused -> beeper-unavailable", async () => {
     const probe = createServer(() => {});

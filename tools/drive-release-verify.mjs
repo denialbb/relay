@@ -46,7 +46,7 @@ async function main() {
   console.log("Driving UI verification fast...");
   try {
     // 1. Toggle open
-    run("omarchy-shell", ["shell", "summon", "denial.beeper-relay", "{}"]);
+    run("omarchy-shell", ["shell", "summon", "denialbb.beeper-relay", "{}"]);
     await sleep(500);
 
     // Capture standard height
@@ -107,7 +107,7 @@ async function main() {
     await sleep(200);
   } finally {
     try {
-      run("omarchy-shell", ["shell", "hide", "denial.beeper-relay", "{}"]);
+      run("omarchy-shell", ["shell", "hide", "denialbb.beeper-relay", "{}"]);
     } catch {}
   }
   console.log("Done driving UI verification.");

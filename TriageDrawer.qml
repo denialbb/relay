@@ -4,6 +4,7 @@ import QtQuick.Controls
 import "components"
 import "components/KeyHintsHelper.js" as HintsHelper
 import "models"
+import "models/TriageModel.js" as TM
 import "services"
 import "theme"
 
@@ -58,6 +59,8 @@ FocusScope {
     property var quickReplyChat: null
     property var dismissedChatIds: ({})
     property bool hidePinned: false
+    property bool settingsOpen: false
+    property int settingsSelectedIndex: 0
 
     readonly property bool needsOnboarding: beeperService.tokenLoaded && !beeperService.hasToken
     onNeedsOnboardingChanged: {
@@ -101,6 +104,37 @@ FocusScope {
     function toggleHidePinned() {
         root.hidePinned = !root.hidePinned;
         root.clampSelectedIndex();
+    }
+
+    function toggleSettings() {
+        root.settingsOpen = !root.settingsOpen;
+        root.settingsSelectedIndex = 0;
+        root.forceActiveFocus();
+    }
+
+    function toggleFilterSetting(index) {
+        if (index === 0) {
+            beeperService.showMutedChats = !beeperService.showMutedChats;
+        } else {
+            beeperService.showLowPriorityChats = !beeperService.showLowPriorityChats;
+        }
+        beeperService.refreshUnread();
+    }
+
+    function routeSettingsKey(event) {
+        if (event.key === Qt.Key_Escape) {
+            root.toggleSettings();
+            event.accepted = true;
+        } else if (root.isNavDown(event)) {
+            root.settingsSelectedIndex = Math.min(1, root.settingsSelectedIndex + 1);
+            event.accepted = true;
+        } else if (root.isNavUp(event)) {
+            root.settingsSelectedIndex = Math.max(0, root.settingsSelectedIndex - 1);
+            event.accepted = true;
+        } else if (root.isActivateKey(event) || event.key === Qt.Key_Space) {
+            root.toggleFilterSetting(root.settingsSelectedIndex);
+            event.accepted = true;
+        }
     }
 
     function handlePinKey(event) {
@@ -174,6 +208,7 @@ FocusScope {
         target: triageModel
         function onChatsChanged() {
             root.clampSelectedIndex();
+            root.pruneDismissed();
         }
     }
 
@@ -283,10 +318,17 @@ FocusScope {
 
     function dismissChat(chatId) {
         if (!chatId) return;
+        var chat = root.findChatById(triageModel.chats, chatId);
         var map = Object.assign({}, root.dismissedChatIds);
-        map[chatId] = true;
+        map[chatId] = chat && chat.lastActivity ? chat.lastActivity : "";
         root.dismissedChatIds = map;
         root.clampSelectedIndex();
+    }
+
+    // Let a dismissed chat return once it shows newer activity than when dismissed.
+    function pruneDismissed() {
+        var pruned = TM.pruneDismissedChats(root.dismissedChatIds, triageModel.chats);
+        if (pruned !== root.dismissedChatIds) root.dismissedChatIds = pruned;
     }
 
     function dispatchQuickReply(chatId, text) {
@@ -345,6 +387,9 @@ FocusScope {
             event.accepted = true;
         } else if (k === Qt.Key_H || t === "h" || t === "H") {
             root.toggleHidePinned();
+            event.accepted = true;
+        } else if (k === Qt.Key_S || t === "s" || t === "S") {
+            root.toggleSettings();
             event.accepted = true;
         } else if (k === Qt.Key_Question || t === "?") {
             root.helpExpanded = !root.helpExpanded;
@@ -457,6 +502,10 @@ FocusScope {
             }
             return;
         }
+        if (root.settingsOpen) {
+            root.routeSettingsKey(event);
+            return;
+        }
         routeCommonKey(event);
         if (event.accepted) return;
         if (root.inConversation) {
@@ -495,7 +544,7 @@ FocusScope {
                 anchors.fill: parent
                 anchors.leftMargin: metrics.spacingMD
                 anchors.rightMargin: metrics.spacingMD
-                visible: !root.inConversation
+                visible: !root.inConversation && !root.settingsOpen
 
                 Text {
                     text: root.hidePinned ? "Relay · pins hidden" : "Relay"
@@ -535,7 +584,7 @@ FocusScope {
                 anchors.fill: parent
                 anchors.leftMargin: metrics.spacingMD
                 anchors.rightMargin: metrics.spacingMD
-                visible: root.inConversation
+                visible: root.inConversation && !root.settingsOpen
 
                 MouseArea {
                     Layout.fillHeight: true
@@ -612,6 +661,22 @@ FocusScope {
                     }
                 }
             }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: metrics.spacingMD
+                anchors.rightMargin: metrics.spacingMD
+                visible: root.settingsOpen
+
+                Text {
+                    text: "Settings"
+                    color: theme.textPrimary
+                    font.family: theme.fontFamily
+                    font.pixelSize: 15
+                    font.bold: true
+                    Layout.alignment: Qt.AlignVCenter
+                }
+            }
         }
 
         // Content Area
@@ -627,7 +692,7 @@ FocusScope {
             Item {
                 id: listContainer
                 anchors.fill: parent
-                visible: !root.inConversation
+                visible: !root.inConversation && !root.settingsOpen
 
                 OnboardingView {
                     id: onboardingView
@@ -672,16 +737,10 @@ FocusScope {
             ConversationView {
                 id: conversationView
                 anchors.fill: parent
-                visible: root.inConversation
+                visible: root.inConversation && !root.settingsOpen
                 chat: root.currentChat
                 messages: triageModel.activeMessages
                 busy: triageModel.sending
-                onRequestMarkRead: {
-                    var cid = triageModel.activeChatId;
-                    root.releaseInputs();
-                    if (!root.isChatPinned(cid)) root.dismissChat(cid);
-                    triageModel.markActiveChatRead(cid);
-                }
                 onRequestOpenInBeeper: {
                     root.openInBeeper(triageModel.activeChatId);
                 }
@@ -689,6 +748,22 @@ FocusScope {
                     triageModel.submitReply(text);
                     conversationView.scrollToBottom();
                     root.releaseInputs();
+                }
+            }
+
+            SettingsView {
+                anchors.fill: parent
+                visible: root.settingsOpen
+                selectedIndex: root.settingsSelectedIndex
+                showMutedChats: beeperService.showMutedChats
+                showLowPriorityChats: beeperService.showLowPriorityChats
+                theme: theme
+                metrics: metrics
+                onSettingSelected: function(index) {
+                    root.settingsSelectedIndex = index;
+                }
+                onSettingToggled: function(index) {
+                    root.toggleFilterSetting(index);
                 }
             }
         }
@@ -761,6 +836,7 @@ FocusScope {
     function getHints() {
         if (root.needsOnboarding) return getOnboardingHints();
         if (root.quickReplyOpen) return getQuickReplyHints();
+        if (root.settingsOpen) return getSettingsHints();
         if (root.inConversation) return getConversationHints();
         if (root.hasError) return getErrorHints();
         return getListHints();
@@ -777,6 +853,14 @@ FocusScope {
         return [
             { key: "Enter", label: "send" },
             { key: "Esc", label: "cancel" }
+        ];
+    }
+
+    function getSettingsHints() {
+        return [
+            { key: "j/k", label: "choose" },
+            { key: "Enter", label: "toggle" },
+            { key: "Esc", label: "back" }
         ];
     }
 
@@ -803,6 +887,7 @@ FocusScope {
             { key: "C-j/k", label: "size" },
             { key: "r", label: "read" },
             { key: "b", label: "beeper" },
+            { key: "s", label: "settings" },
             { key: "q", label: "back" },
             { key: "?", label: "less" }
         ];
@@ -827,6 +912,7 @@ FocusScope {
             { key: "C-j/k", label: "size" },
             { key: "r", label: "read" },
             { key: "b", label: "beeper" },
+            { key: "s", label: "settings" },
             { key: "q", label: "close" },
             { key: "?", label: "less" }
         ];

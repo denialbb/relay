@@ -8,8 +8,8 @@ import "services"
 Panel {
     id: root
 
-    moduleName: "denial.beeper-relay"
-    ipcTarget: "denial.beeper-relay"
+    moduleName: "denialbb.beeper-relay"
+    ipcTarget: "denialbb.beeper-relay"
     manageIpc: false
 
     implicitWidth: button.implicitWidth

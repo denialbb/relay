@@ -56,7 +56,7 @@ async function main() {
   await sleep(1500);
 
   console.log('Step 3: Summoning Relay drawer...');
-  run('omarchy-shell', ['shell', 'summon', 'denial.beeper-relay', '{}']);
+  run('omarchy-shell', ['shell', 'summon', 'denialbb.beeper-relay', '{}']);
   await sleep(600);
 
   const sPrompt = join(outDir, 'onboarding_01_prompt.png');
@@ -111,7 +111,7 @@ async function main() {
 
   console.log('Step 7: Closing drawer...');
   await sleep(1500);
-  run('omarchy-shell', ['shell', 'hide', 'denial.beeper-relay']);
+  run('omarchy-shell', ['shell', 'hide', 'denialbb.beeper-relay']);
 
   console.log('Step 8: Restarting shell to ensure clean production state...');
   run('/usr/share/omarchy/bin/omarchy-restart-shell');

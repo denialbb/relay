@@ -16,10 +16,13 @@ Relay is designed as an unread triage tool operated entirely from the keyboard.
 | `h` (or `Ctrl + p`) | Chat List / Conversation | Toggle hide pinned chats (header shows `Relay · pins hidden`) |
 | `r` | Chat List / Conversation | Explicitly mark active chat as read (`Ctrl + r` force-refreshes inbox) |
 | `b` | Chat List / Conversation | Launch directly into Beeper Desktop (`beeper://chat/<chatId>`) |
+| `s` | Chat List / Conversation | Open filter settings; `Esc` returns to the prior view |
 | `?` | Any | Toggle centered key hints bar between compact and full shortcut view |
 | `Esc` (or `q`) | Chat List | Dismiss / close triage drawer |
 | `Esc` | Quick Reply | Cancel quick reply and return to chat list |
 | `Esc` (or `q`) | Conversation | Return to unread chat list |
+| `j` / `k`, `Enter` / `Space` | Settings | Select and toggle “Show muted chats” / “Show low-priority chats” |
+| `Esc` | Settings | Return to the previous list or conversation view |
 | `i` or `c` | Conversation | Focus reply composer |
 | `j` or `Down` | Conversation | Scroll message history down |
 | `k` or `Up` | Conversation | Scroll message history up |
@@ -38,6 +41,7 @@ Relay is designed as an unread triage tool operated entirely from the keyboard.
 4. **Modal Isolation**:
    - **Chat List**: Single-letter keys (`j`, `k`, `o`, `i`, `p`, `h`, `r`, `b`, `?`, `q`) trigger triage actions.
    - **Quick Reply Modal**: Pressing `i` in the list opens an inline overlay with an auto-expanding multiline text field (up to 100px height). `Enter` sends; `Shift + Enter` inserts newline; `Esc` cancels.
+   - **Settings**: `s` opens from the list or conversation. `j`/`k` selects one of two independent filters; `Enter`/`Space` toggles it; `Esc` restores the prior view. Preferences persist across restarts.
    - **Composer**: Text entry routes to the input field; navigation shortcuts are suppressed until `Esc` (focus returns to drawer) or `Enter` (send + focus returns to drawer).
 5. **Key Hints Footer**: The centered bottom bar dynamically renders an eliding formatted text summary (`formatHints`) of shortcuts appropriate to the active view (List, Quick Reply, Conversation, Onboarding, or Error). Pressing `?` toggles between compact and expanded shortcut views.
 
@@ -45,7 +49,7 @@ Relay is designed as an unread triage tool operated entirely from the keyboard.
 
 ## 3. Pins & Priority
 
-- **Low-Priority Filtering**: Chats marked low priority (`isLowPriority`) in Beeper are automatically filtered out of triage.
+- **Unread filters**: Muted and low-priority chats are hidden by default. Open Settings with `s` to independently show either category; preferences persist in `pins.json`.
 - **Pin Retention**: Pressing `p` pins the active chat. Pinned chats sort first and survive zero-unread inbox clearance (`r` marks them read without dismissing them). Pinned state persists across drawer reloads.
 - **Storage Privacy**: Retained pin snapshots strip message preview text when serialized to disk (`~/.config/beeper-relay/pins.json`).
 - **Hide Pinned**: Pressing `h` (or `Ctrl + p`) toggles visibility of pinned chats, switching the header title to `Relay · pins hidden`.

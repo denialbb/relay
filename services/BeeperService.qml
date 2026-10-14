@@ -89,6 +89,8 @@ Item {
     property var recentlyMarkedRead: ({})
     property var localPins: ({})
     property var retainedPins: ({})
+    property bool showMutedChats: false
+    property bool showLowPriorityChats: false
     property var loadingPreviews: ({})
     property bool previewsEnabled: true
     property int sendsInFlight: 0
@@ -144,22 +146,37 @@ Item {
         root.savePins();
     }
 
+    onShowMutedChatsChanged: {
+        root.savePins();
+    }
+
+    onShowLowPriorityChatsChanged: {
+        root.savePins();
+    }
+
     function savePins() {
         if (root.restoringPins) return;
         pinsFile.setText(JSON.stringify({
             localPins: root.localPins,
-            retainedPins: TM.stripPreviewsForStorage(root.retainedPins)
+            retainedPins: TM.stripPreviewsForStorage(root.retainedPins),
+            showMutedChats: root.showMutedChats,
+            showLowPriorityChats: root.showLowPriorityChats
         }));
     }
 
     function restorePins(raw) {
         var data = root.parsePins(raw);
         if (!data) return;
+        var filtersChanged = root.showMutedChats !== data.showMutedChats
+            || root.showLowPriorityChats !== data.showLowPriorityChats;
         root.restoringPins = true;
         root.localPins = data.localPins;
         root.retainedPins = data.retainedPins;
+        root.showMutedChats = data.showMutedChats;
+        root.showLowPriorityChats = data.showLowPriorityChats;
         root.restoringPins = false;
         root.restampPins();
+        if (filtersChanged && root.status !== "idle") root.refreshUnread();
     }
 
     function parsePinsJson(raw) {
@@ -178,7 +195,12 @@ Item {
         if (!raw) return null;
         var data = root.parsePinsJson(raw);
         if (!root.validPinsShape(data)) return null;
-        return { localPins: data.localPins || {}, retainedPins: data.retainedPins || {} };
+        return {
+            localPins: data.localPins || {},
+            retainedPins: data.retainedPins || {},
+            showMutedChats: data.showMutedChats === true,
+            showLowPriorityChats: data.showLowPriorityChats === true
+        };
     }
 
     function initialize() {
@@ -349,7 +371,10 @@ Item {
     }
 
     function processRefreshedChats(rawList) {
-        var eligible = TM.filterEligibleChats(rawList);
+        var eligible = TM.filterEligibleChats(rawList, {
+            showMutedChats: root.showMutedChats,
+            showLowPriorityChats: root.showLowPriorityChats
+        });
         var normalized = [];
         var seen = {};
         for (var i = 0; i < eligible.length; i++) {
@@ -651,8 +676,12 @@ Item {
     Component {
         id: requestProcComponent
         Process {
-            property var onSuccess
-            property var onFailure
+            // Referenced by id from the collector below: the collector's
+            // `parent` is not this Process, so dispatching on `parent`
+            // silently misses the handlers and the inbox never loads.
+            id: requestProc
+            property var successHandler
+            property var failureHandler
             property string payloadString: ""
             property string methodArg: ""
             property string pathArg: ""
@@ -663,7 +692,7 @@ Item {
                 id: stdoutCol
                 waitForEnd: true
                 onStreamFinished: {
-                    root.handleRequestStreamFinished(parent, stdoutCol.text);
+                    root.handleRequestStreamFinished(requestProc, stdoutCol.text);
                 }
             }
             
@@ -689,11 +718,11 @@ function parseProcOutput(text) {
     }
 
     function notifyFailure(proc, errObj) {
-        if (proc.onFailure) proc.onFailure(errObj);
+        if (proc.failureHandler) proc.failureHandler(errObj);
     }
 
     function notifySuccess(proc, data) {
-        if (proc.onSuccess) proc.onSuccess(data || {});
+        if (proc.successHandler) proc.successHandler(data || {});
     }
 
     function isSuccessStatus(status) {
@@ -714,8 +743,8 @@ function parseProcOutput(text) {
             methodArg: method,
             pathArg: path,
             payloadString: body ? JSON.stringify(body) : "",
-            onSuccess: onSuccess,
-            onFailure: onFailure
+            successHandler: onSuccess,
+            failureHandler: onFailure
         });
     }
 

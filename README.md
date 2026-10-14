@@ -32,7 +32,7 @@ On first run Relay shows a token prompt instead of the inbox:
 
 ## How the token is stored
 
-- Location: `~/.config/beeper-relay/token` (pins cache: `~/.config/beeper-relay/pins.json`).
+- Location: `~/.config/beeper-relay/token` (pins and filter preferences: `~/.config/beeper-relay/pins.json`).
 - The directory is created mode `0700`; the token file is written under `umask 077` (mode `0600`).
 - Relay loads the token once at startup and sends it as an `Authorization: Bearer` header to the local Beeper API only.
 - The token and message bodies are never written to logs. Pinned-chat snapshots on disk keep IDs and titles only — message previews are stripped before writing.
@@ -57,6 +57,7 @@ On first run Relay shows a token prompt instead of the inbox:
 | `p` | Pin chat (pins sort first and survive clearing) |
 | `h` | Hide / show pinned chats |
 | `b` | Open chat in Beeper Desktop |
+| `s` | Open filter settings (muted and low-priority chats; preferences persist) |
 | `Ctrl+j` / `Ctrl+k` | Grow / shrink drawer (220–700px) |
 | `?` | Toggle full keyboard hints |
 | `Esc` / `q` | Close drawer, cancel reply, or back out of a conversation |

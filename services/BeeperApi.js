@@ -46,7 +46,7 @@ function classifyNetworkError(err) {
   return "unknown";
 }
 
-async function requestJson(url, init = {}, _options = {}) {
+async function requestJson(url, init = {}, options = {}) {
   // url is something like http://127.0.0.1:40123/v1/chats/search
   // We extract the path
   let parsedUrl;
@@ -84,17 +84,29 @@ async function requestJson(url, init = {}, _options = {}) {
 
       let out = "";
       let errOut = "";
+      const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0
+        ? options.timeoutMs
+        : 10000;
+      const timer = setTimeout(() => {
+        const error = Object.assign(new Error("Request timed out"), { code: "ETIMEDOUT" });
+        reject(error);
+        child.kill();
+      }, timeoutMs);
       child.stdout.on("data", (d) => (out += d));
       child.stderr.on("data", (d) => (errOut += d));
 
       child.on("close", (code) => {
+        clearTimeout(timer);
         if (code !== 0 && !out) {
           reject(new Error(errOut || "Process exited with code " + code));
         } else {
           resolve(out);
         }
       });
-      child.on("error", reject);
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
 
       const bodyData = init.body
         ? init.body.length.toString() + "\n" + init.body

@@ -9,7 +9,7 @@ test('calculateCropGeometry returns correct geometry for focused monitor', () =>
   ];
   const barWidgets = [
     { id: 'omarchy.clock', x: 908, y: 0, width: 104, height: 26 },
-    { id: 'denial.beeper-relay', x: 1723, y: 0, width: 27, height: 26 }
+    { id: 'denialbb.beeper-relay', x: 1723, y: 0, width: 27, height: 26 }
   ];
 
   const geom = calculateCropGeometry(monitors, barWidgets);
@@ -26,7 +26,7 @@ test('calculateCropGeometry falls back to first monitor if none focused', () => 
     { name: 'eDP-1', focused: false, x: 0, y: 0, width: 1920, height: 1080 }
   ];
   const barWidgets = [
-    { id: 'denial.beeper-relay', x: 1700, y: 0, width: 27, height: 26 }
+    { id: 'denialbb.beeper-relay', x: 1700, y: 0, width: 27, height: 26 }
   ];
 
   const geom = calculateCropGeometry(monitors, barWidgets);
